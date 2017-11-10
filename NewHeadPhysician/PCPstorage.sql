@@ -13,3 +13,13 @@ FROM [NGProd].[INFORMATION_SCHEMA].COLUMNS
 WHERE COLUMN_NAME LIKE 'provider_id'
 ORDER BY TABLE_NAME, COLUMN_NAME
 --This returns all tables with a provider_id that could be a PCP relational table for patients and providers
+--It has 167 rows, much easier to look through
+
+SELECT COLUMN_NAME
+      ,TABLE_NAME
+FROM [NGProd].[INFORMATION_SCHEMA].COLUMNS 
+WHERE COLUMN_NAME LIKE '%prim%'
+AND COLUMN_NAME LIKE '%c%'
+AND COLUMN_NAME LIKE '%prov%'
+ORDER BY TABLE_NAME, COLUMN_NAME
+--This returns 56 rows, finally found its hiding place
