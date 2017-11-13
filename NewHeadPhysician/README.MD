@@ -4,3 +4,5 @@ Our clinic has a new Head Physician who is responsible for all patients who use 
 As such, she must be the Primary Care Physician for all of our patients whose previous PCP was the former Head Physician
 
 This project contains some of the steps and sub-problems involved in that update
+
+A wrinkle was added to also update the default rendering provider for each patient
