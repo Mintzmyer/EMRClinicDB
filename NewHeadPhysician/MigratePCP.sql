@@ -5,7 +5,7 @@ SELECT person.last_name
       ,person.primarycare_prov_id
       ,PCP.last_name AS PCP
       ,DefProv.last_name AS DefaultRendProv
-      ,patient_alerts.description AS EPMalert
+      ,patient_alerts.subject AS EPMalert
       ,ehr_alerts_mstr.description AS EHRalert
 FROM [NGProd].[dbo].person
 INNER JOIN [NGProd].[dbo].patient
