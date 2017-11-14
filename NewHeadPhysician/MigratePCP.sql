@@ -82,6 +82,7 @@ INSERT INTO [NGProd].[dbo].patient_alerts_ehr (
 --Insert EPM Alert
 INSERT INTO [NGProd].[dbo].patient_alerts (
     practice_id
+    ,alert_id
     ,source_id
     ,source_type
     ,subject
@@ -89,9 +90,12 @@ INSERT INTO [NGProd].[dbo].patient_alerts (
     ,delete_ind
     ,create_timestamp
     ,created_by
+    ,modify_timestamp
+    ,modified_by
     ,link_id
     )
     SELECT [NGProd].[dbo].person.practice_id
+        ,NEWID()
         ,[NGProd].[dbo].person.person_id
         ,'C'
         ,'New PCP - First Visit'
@@ -99,13 +103,15 @@ INSERT INTO [NGProd].[dbo].patient_alerts (
         ,'N'
         ,CURRENT_TIMESTAMP
         ,'-99'
+        ,CURRENT_TIMESTAMP
+        ,'-99'
         ,NULL
     FROM [NGProd].[dbo].person
         INNER JOIN [NGProd].[dbo].provider_mstr
         ON person.primarycare_prov_id = provider_mstr.provider_id
     WHERE [NGProd].[dbo].provider_mstr.first_name = @OldProvider
-        AND person.last_name = @PatientName
-    
+        AND person.last_name = @PatientName 
+
 
 --Update PCP
 UPDATE [NGProd].[dbo].person
