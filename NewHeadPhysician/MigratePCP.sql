@@ -79,7 +79,32 @@ INSERT INTO [NGProd].[dbo].patient_alerts_ehr (
        AND person.last_name = @PatientName
        
     
-
+--Insert EPM Alert
+INSERT INTO [NGProd].[dbo].patient_alerts (
+    practice_id
+    ,source_id
+    ,source_type
+    ,subject
+    ,description
+    ,delete_ind
+    ,create_timestamp
+    ,created_by
+    ,link_id
+    )
+    SELECT [NGProd].[dbo].person.practice_id
+        ,[NGProd].[dbo].person.person_id
+        ,'C'
+        ,'New PCP - First Visit'
+        ,'Auto PCP Migration, Never Seen Current PCP'
+        ,'N'
+        ,CURRENT_TIMESTAMP
+        ,'-99'
+        ,NULL
+    FROM [NGProd].[dbo].person
+        INNER JOIN [NGProd].[dbo].provider_mstr
+        ON person.primarycare_prov_id = provider_mstr.provider_id
+    WHERE [NGProd].[dbo].provider_mstr.first_name = @OldProvider
+        AND person.last_name = @PatientName
     
 
 --Update PCP
