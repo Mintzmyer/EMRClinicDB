@@ -113,25 +113,6 @@ UPDATE [NGProd].[dbo].patient
             FROM [NGProd].[dbo].person
             WHERE [NGProd].[dbo].[person].last_name = @PatientName
             )
-            
-
-    SET message_id = (
-        SELECT provider_id
-        FROM [NGProd].[dbo].provider_mstr
-        WHERE [NGProd].[dbo].[provider_mstr].first_name = @NewProvider
-        )
-    WHERE [NGProd].[dbo].patient.rendering_prov_id = (
-        SELECT provider_id
-        FROM [NGProd].[dbo].provider_mstr
-        WHERE [NGProd].[dbo].[provider_mstr].first_name = @OldProvider
-        )
-        AND person_id = (
-            SELECT person_id
-            FROM [NGProd].[dbo].person
-            WHERE [NGProd].[dbo].[person].last_name = @PatientName
-            )
-
-
 
 /* This query finds all patients whose PCP is a certain provider A and reassigns
 them to have a provider B as their PCP. It also sets an alert on their account
