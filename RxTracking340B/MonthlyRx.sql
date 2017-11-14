@@ -31,3 +31,38 @@ WHERE start_date < @Month+100
     ORDER BY start_date
 
 
+/*** Script for generatin full Rx history ***/
+
+/* This report performs same medication aggregation as above, but for
+    entire clinic's history with this DB   */
+
+SELECT patient_medication.medication_name
+      ,provider_mstr.last_name
+      ,provider_mstr.first_name
+      ,person_payer.payer_name
+      ,patient_.pharm_1
+      ,start_date
+    FROM [NGProd].[dbo].patient_medication
+    INNER JOIN [NGProd].[dbo].provider_mstr
+        ON patient_medication.provider_id = provider_mstr.provider_id
+    INNER JOIN [NGProd].[dbo].person_payer
+        ON patient_medication.person_id = person_payer.person_id
+    INNER JOIN [NGProd].[dbo].patient_
+        ON patient_medication.person_id = patient_.person_id
+UNION
+-- Legacy datatable from Version 5.8
+SELECT patient_medication_05080079_bak.medication_name
+      ,provider_mstr.last_name
+      ,provider_mstr.first_name
+      ,person_payer.payer_name
+      ,patient_.pharm_1
+      ,start_date
+    FROM [NGProd].[dbo].patient_medication_05080079_bak
+    INNER JOIN [NGProd].[dbo].provider_mstr
+        ON patient_medication_05080079_bak.provider_id = provider_mstr.provider_id
+    INNER JOIN [NGProd].[dbo].person_payer
+        ON patient_medication_05080079_bak.person_id = person_payer.person_id
+    INNER JOIN [NGProd].[dbo].patient_
+        ON patient_medication_05080079_bak.person_id = patient_.person_id  
+    ORDER BY start_date
+
