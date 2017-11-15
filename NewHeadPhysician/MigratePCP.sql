@@ -41,6 +41,7 @@ DECLARE @PatientName varchar(30) = 'Test'
 --Insert EHR Alert
 INSERT INTO [NGProd].[dbo].patient_alerts_ehr (
     practice_id
+   ,alert_id
    ,person_id
    ,source_type
    ,comment
@@ -48,6 +49,8 @@ INSERT INTO [NGProd].[dbo].patient_alerts_ehr (
    ,flag_ind
    ,create_timestamp
    ,created_by 
+   ,modify_timestamp
+   ,modified_by
    ,message_id
    ,disruptive_ind
    ,acknowledge_by
@@ -55,11 +58,14 @@ INSERT INTO [NGProd].[dbo].patient_alerts_ehr (
    ,subtype_id
    )
    SELECT [NGProd].[dbo].person.practice_id
+       ,NEWID()
        ,[NGProd].[dbo].person.person_id
        ,[NGProd].[dbo].ehr_alerttypes_mstr.alerttype_id
        ,'New PCP Migration'
        ,'N'
        ,'Y'
+       ,CURRENT_TIMESTAMP
+       ,'-99'
        ,CURRENT_TIMESTAMP
        ,'-99'
        ,[NGProd].[dbo].[ehr_alerts_mstr].message_id
