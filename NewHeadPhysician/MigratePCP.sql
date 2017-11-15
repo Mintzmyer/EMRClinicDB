@@ -1,41 +1,19 @@
-/****** Script for selecting Patients PCP and Default Rendering Provider, and alerts  ******/
+/* This query finds all patients whose PCP is a certain provider A and reassigns
+them to have a provider B as their PCP. It also sets an alert on their account
+ that although their PCP is provider B, they have not yet seen their new PCP*/
 
-/* This query finds all patients whose last name is 'Test' and shows their PCP, default rendering provider, EPM alerts, and EHR alerts */
-SELECT person.last_name
-      ,person.primarycare_prov_id
-      ,PCP.last_name AS PCP
-      ,DefProv.last_name AS DefaultRendProv
-      ,patient_alerts.subject AS EPMalert
-      ,ehr_alerts_mstr.description AS EHRalert
-FROM [NGProd].[dbo].person
-INNER JOIN [NGProd].[dbo].patient
-ON [person].person_id = patient.person_id
-INNER JOIN [NGProd].[dbo].provider_mstr as PCP
-ON [person].primarycare_prov_id = PCP.provider_id
-INNER JOIN [NGProd].[dbo].provider_mstr AS DefProv
-ON [patient].rendering_prov_id = DefProv.provider_id
-INNER JOIN [NGProd].[dbo].patient_alerts
-ON [person].person_id = [patient_alerts].source_id
-INNER JOIN [NGProd].[dbo].patient_alerts_ehr
-ON [person].person_id = [patient_alerts_ehr].person_id
-INNER JOIN [NGProd].[dbo].ehr_alerts_mstr
-ON [patient_alerts_ehr].message_id = [ehr_alerts_mstr].message_id
-WHERE person.last_name = 'Test'
-
-
-/* This query finds the patient whose 
-    PCP is a certain provider P1 and whose 
-    default rendering provider is a certain provider P2
-    and whose last name is a given Lname
+/* This query finds all patients whose 
+    PCP is a certain provider '@OldProvider' and whose 
+    default rendering provider is a certain provider '@OldProvider'
     
-    And updates the patient's PCP and default rendering provider to P3
+    And updates the patient's PCP and default rendering provider to '@NewProvider'
     and assigns alerts to the patient's account to appear in EPM and EHR */
-/****** Script for updating a given patient's PCP and Default Rendering Provider, and adding EPM/EHR alerts  ******/
+
+/****** Script for updating all patient's PCP and Default Rendering Provider, and adding EPM/EHR alerts  ******/
 
 --Declare old and new providers to migrate from/to
 DECLARE @OldProvider varchar(30) = 'Saint-Lewis'
 DECLARE @NewProvider varchar(30) = 'Choi'
-DECLARE @PatientName varchar(30) = 'Test'
 
 
 --Insert EHR Alert
@@ -82,7 +60,6 @@ INSERT INTO [NGProd].[dbo].patient_alerts_ehr (
        ON person.primarycare_prov_id = provider_mstr.provider_id
    WHERE provider_mstr.last_name = @OldProvider
        AND ehr_alerts_mstr.message_id = '7B2CB038-F19E-4B21-A202-5D0ADC3BFA54'
-       AND person.last_name = @PatientName
        
     
 --Insert EPM Alert
@@ -116,7 +93,6 @@ INSERT INTO [NGProd].[dbo].patient_alerts (
         INNER JOIN [NGProd].[dbo].provider_mstr
         ON person.primarycare_prov_id = provider_mstr.provider_id
     WHERE [NGProd].[dbo].provider_mstr.last_name = @OldProvider
-        AND person.last_name = @PatientName 
 
 
 --Update PCP
@@ -131,7 +107,6 @@ UPDATE [NGProd].[dbo].person
         FROM [NGProd].[dbo].provider_mstr
         WHERE [NGProd].[dbo].[provider_mstr].last_name = @OldProvider
         )
-        AND person.last_name = @PatientName
         
 --Update Default Rendering Provider
 UPDATE [NGProd].[dbo].patient
@@ -145,15 +120,3 @@ UPDATE [NGProd].[dbo].patient
         FROM [NGProd].[dbo].provider_mstr
         WHERE [NGProd].[dbo].[provider_mstr].last_name = @OldProvider
         )
-        AND person_id = (
-            SELECT person_id
-            FROM [NGProd].[dbo].person
-            WHERE [NGProd].[dbo].[person].last_name = @PatientName
-            )
-
-/* This query finds all patients whose PCP is a certain provider A and reassigns
-them to have a provider B as their PCP. It also sets an alert on their account
- that although their PCP is provider B, they have not yet seen their new PCP*/
-
-
-
