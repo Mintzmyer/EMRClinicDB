@@ -16,7 +16,7 @@
     -- Unins NI id = E4740E1F...
     -- Unins Ref id = 484D32A8...
 
---Set References
+--Set Reference Variables
 DECLARE @Insured
 DECLARE @NotDoneYet
 
@@ -30,9 +30,13 @@ SET @NotDoneYet = ( SELECT mstr_list_item_id
 		 WHERE ( mstr_list_type = 'ud_demo1'
 			AND mstr_list_item_desc = 'Not Done Yet' ) )
 
+SET @Uninterested = ( SELECT mstr_list_item_id
+	         FROM [NGProd].[dbo].mstr_lists
+		 WHERE ( mstr_list_type = 'ud_demo1'
+			AND mstr_list_item_desc = 'Uninsured - Not Interested' ) )
 
 
---Insert EPM Alert
+--Insert Uninsured EPM Alert
 INSERT INTO [NGProd].[dbo].patient_alerts (
     practice_id
     ,alert_id
@@ -64,12 +68,9 @@ INSERT INTO [NGProd].[dbo].patient_alerts (
 	ON person.person_id = patient_.person_id
         INNER JOIN [NGProd].[dbo].person_ud
 	ON person_ud.person_id = person.person_id
-	OUTER JOIN [NGProd].[dbo]
     WHERE ( ( [NGProd].[dbo].patient_.prim_insurance is NULL
         AND [NGProd].[dbo].patient_.sec_insurance is NULL )
-        AND [NGProd].[dbo].person_ud.ud_demo1_id 
-
-
+        AND ( [NGProd].[dbo].person_ud.ud_demo1_id != @Uninterested ) )
 
 /*
 
