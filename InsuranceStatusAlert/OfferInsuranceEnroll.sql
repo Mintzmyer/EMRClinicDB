@@ -17,8 +17,9 @@
     -- Unins Ref id = 484D32A8...
 
 --Set Reference Variables
-DECLARE @Insured
-DECLARE @NotDoneYet
+DECLARE @Insured uniqueidentifier
+DECLARE @NotDoneYet uniqueidentifier
+DECLARE @Uninterested uniqueidentifier
 
 SET @Insured = ( SELECT mstr_list_item_id
 	         FROM [NGProd].[dbo].mstr_lists
