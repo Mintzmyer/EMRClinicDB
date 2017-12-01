@@ -126,7 +126,21 @@ INSERT INTO [NGProd].[dbo].patient_alerts (
 	ON person.person_id = patient_.person_id
         INNER JOIN [NGProd].[dbo].person_ud
 	ON person_ud.person_id = person.person_id
-    WHERE ( ( [NGProd].[dbo].patient_.prim_insurance is NULL
+	    INNER JOIN [NGProd].[dbo].patient_alerts
+	ON person.person_id = patient_alerts.source_id
+	    INNER JOIN (
+	    SELECT patient_alerts.source_id
+	    FROM patient_alerts
+	    INNER JOIN patient_
+	    ON patient_alerts.source_id = patient_.person_id
+	    EXCEPT
+	    SELECT patient_alerts.source_id
+	    FROM patient_alerts
+	    INNER JOIN patient_
+	    ON patient_alerts.source_id = patient_.person_id
+	    WHERE patient_alerts.subject = 'SHOP - Enroll in Insurance')
+	    AS results
+	    ON person.person_id = results.source_id
+    WHERE  ( [NGProd].[dbo].patient_.prim_insurance is NULL
         AND [NGProd].[dbo].patient_.sec_insurance is NULL )
-        AND ( [NGProd].[dbo].person_ud.ud_demo1_id != @Uninterested ) )
-
+        ORDER BY person.last_name
