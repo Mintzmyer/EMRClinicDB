@@ -59,7 +59,7 @@ INNER JOIN patient_
 on person.person_id = patient_.person_id
 WHERE ( patient_.prim_insurance is NULL
      AND patient_.sec_insurance is NULL )
-     AND (person_ud.ud_demo1_id != @NotDoneYet 
+     AND (person_ud.ud_demo1_id = @Insured
      OR person_ud.ud_demo1_id is NULL)
 
 --Insert Uninsured EPM Alert

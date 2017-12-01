@@ -98,23 +98,3 @@ INSERT INTO [NGProd].[dbo].patient_alerts (
         AND [NGProd].[dbo].patient_.sec_insurance is NULL )
         AND ( [NGProd].[dbo].person_ud.ud_demo1_id != @Uninterested ) )
 
---Set Reference Variables
-DECLARE @Insured uniqueidentifier
-DECLARE @NotDoneYet uniqueidentifier
-DECLARE @Uninterested uniqueidentifier
-DECLARE @Active uniqueidentifier
-
-SET @Insured = ( SELECT mstr_list_item_id
-	         FROM [NGProd].[dbo].mstr_lists
-		 WHERE ( mstr_list_type = 'ud_demo1'
-			AND mstr_list_item_desc = 'Insured' ) )
-
-SET @NotDoneYet = ( SELECT mstr_list_item_id
-	         FROM [NGProd].[dbo].mstr_lists
-		 WHERE ( mstr_list_type = 'ud_demo1'
-			AND mstr_list_item_desc = 'Not Done Yet' ) )
-
-SET @Uninterested = ( SELECT mstr_list_item_id
-	         FROM [NGProd].[dbo].mstr_lists
-		 WHERE ( mstr_list_type = 'ud_demo1'
-			AND mstr_list_item_desc = 'Uninsured - Not Interested' ) )
