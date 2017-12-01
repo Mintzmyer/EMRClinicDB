@@ -10,7 +10,8 @@
 
 -- patient_ table holds prim_insurance, sec_insurance columns
 -- person_ud table holds client defined options
--- mstr_lists table holds list information: ud_demo1 is 'Insurance Enrollment Status'. For reference:
+-- mstr_lists table holds list information: ud_demo1 is 'Insurance Enrollment Status'. 
+-- For reference:
     -- Insured id = 6204564E...
     -- Not Done id = 19FE351A...
     -- Unins NI id = E4740E1F...
@@ -49,7 +50,21 @@ WHERE ( patient_.prim_insurance is not NULL
      AND (person_ud.ud_demo1_id != @Insured 
      OR person_ud.ud_demo1_id is NULL)
 
--- Set all uninsured patients to 'Not Done Yet' status
+-- Remove Uninsured EPM alert if patient has insurance and (undeleted) alert
+-- Update 'delete_ind' to Y
+UPDATE patient_alerts
+SET delete_ind = 'Y'
+FROM [NGProd].[dbo].patient_alerts
+INNER JOIN patient_
+ON patient_.person_id = patient_alerts.source_id
+WHERE ( patient_.prim_insurance is not NULL
+     OR patient_.sec_insurance is not NULL )
+     AND (patient_alerts.subject = 'SHOP - Enroll in Insurance'
+     AND patient_alerts.delete_ind = 'N')
+
+-- Set all uninsured patients to 'Not Done Yet' status 
+-- Only if they are Insured or NULL
+    -- Not if they are already Not Done Yet, Uninterested or already referred to shop
 UPDATE person_ud
 SET ud_demo1_id = @NotDoneYet
 FROM [NGProd].[dbo].person
@@ -62,7 +77,8 @@ WHERE ( patient_.prim_insurance is NULL
      AND (person_ud.ud_demo1_id = @Insured
      OR person_ud.ud_demo1_id is NULL)
 
---Insert Uninsured EPM Alert
+-- Insert Uninsured EPM Alert 
+-- Only if they don't already have one: Check for 'delete_ind' set to N and flip to Y
 INSERT INTO [NGProd].[dbo].patient_alerts (
     practice_id
     ,alert_id
@@ -98,23 +114,3 @@ INSERT INTO [NGProd].[dbo].patient_alerts (
         AND [NGProd].[dbo].patient_.sec_insurance is NULL )
         AND ( [NGProd].[dbo].person_ud.ud_demo1_id != @Uninterested ) )
 
---Set Reference Variables
-DECLARE @Insured uniqueidentifier
-DECLARE @NotDoneYet uniqueidentifier
-DECLARE @Uninterested uniqueidentifier
-DECLARE @Active uniqueidentifier
-
-SET @Insured = ( SELECT mstr_list_item_id
-	         FROM [NGProd].[dbo].mstr_lists
-		 WHERE ( mstr_list_type = 'ud_demo1'
-			AND mstr_list_item_desc = 'Insured' ) )
-
-SET @NotDoneYet = ( SELECT mstr_list_item_id
-	         FROM [NGProd].[dbo].mstr_lists
-		 WHERE ( mstr_list_type = 'ud_demo1'
-			AND mstr_list_item_desc = 'Not Done Yet' ) )
-
-SET @Uninterested = ( SELECT mstr_list_item_id
-	         FROM [NGProd].[dbo].mstr_lists
-		 WHERE ( mstr_list_type = 'ud_demo1'
-			AND mstr_list_item_desc = 'Uninsured - Not Interested' ) )
