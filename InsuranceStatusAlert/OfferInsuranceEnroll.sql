@@ -37,6 +37,8 @@ SET @Uninterested = ( SELECT mstr_list_item_id
 		 WHERE ( mstr_list_type = 'ud_demo1'
 			AND mstr_list_item_desc = 'Uninsured - Not Interested' ) )
 
+        /****    STATUS UPDATES    ****/
+
 -- Set all insured patients to 'Insured' status
 UPDATE person_ud
 SET ud_demo1_id = @Insured
@@ -49,18 +51,6 @@ WHERE ( patient_.prim_insurance is not NULL
      OR patient_.sec_insurance is not NULL )
      AND (person_ud.ud_demo1_id != @Insured 
      OR person_ud.ud_demo1_id is NULL)
-
--- Remove Uninsured EPM alert if patient has insurance and (undeleted) alert
--- Update 'delete_ind' to Y
-UPDATE patient_alerts
-SET delete_ind = 'Y'
-FROM [NGProd].[dbo].patient_alerts
-INNER JOIN patient_
-ON patient_.person_id = patient_alerts.source_id
-WHERE ( patient_.prim_insurance is not NULL
-     OR patient_.sec_insurance is not NULL )
-     AND (patient_alerts.subject = 'SHOP - Enroll in Insurance'
-     AND patient_alerts.delete_ind = 'N')
 
 -- Set all uninsured patients to 'Not Done Yet' status 
 -- Only if they are Insured or NULL
@@ -77,8 +67,34 @@ WHERE ( patient_.prim_insurance is NULL
      AND (person_ud.ud_demo1_id = @Insured
      OR person_ud.ud_demo1_id is NULL)
 
+        /****    ALERT UPDATES    ****/
+
+-- Remove Uninsured EPM alert if patient has insurance and (undeleted) alert
+-- Update 'delete_ind' to Y
+UPDATE patient_alerts
+SET delete_ind = 'Y'
+FROM [NGProd].[dbo].patient_alerts
+INNER JOIN patient_
+ON patient_.person_id = patient_alerts.source_id
+WHERE ( patient_.prim_insurance is not NULL
+     OR patient_.sec_insurance is not NULL )
+     AND (patient_alerts.subject = 'SHOP - Enroll in Insurance'
+     AND patient_alerts.delete_ind = 'N')
+
+-- Reactivate Uninsured EPM alert if patient has lost insurance and has deleted alert
+-- Update 'delete_ind' to N
+UPDATE patient_alerts
+SET delete_ind = 'N'
+FROM [NGProd].[dbo].patient_alerts
+INNER JOIN patient_
+ON patient_.person_id = patient_alerts.source_id
+WHERE ( patient_.prim_insurance is NULL
+     AND patient_.sec_insurance is NULL )
+     AND (patient_alerts.subject = 'SHOP - Enroll in Insurance'
+     AND patient_alerts.delete_ind = 'Y')
+
 -- Insert Uninsured EPM Alert 
--- Only if they don't already have one: Check for 'delete_ind' set to N and flip to Y
+-- Only if they don't already have one
 INSERT INTO [NGProd].[dbo].patient_alerts (
     practice_id
     ,alert_id
