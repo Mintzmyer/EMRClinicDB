@@ -20,6 +20,7 @@
 DECLARE @Insured uniqueidentifier
 DECLARE @NotDoneYet uniqueidentifier
 DECLARE @Uninterested uniqueidentifier
+DECLARE @Active uniqueidentifier
 
 SET @Insured = ( SELECT mstr_list_item_id
 	         FROM [NGProd].[dbo].mstr_lists
@@ -35,6 +36,14 @@ SET @Uninterested = ( SELECT mstr_list_item_id
 	         FROM [NGProd].[dbo].mstr_lists
 		 WHERE ( mstr_list_type = 'ud_demo1'
 			AND mstr_list_item_desc = 'Uninsured - Not Interested' ) )
+
+SET @Active = (SELECT [patient_status_mstr].[patient_status_id]
+	      FROM [NGProd].[dbo].[patient_status_mstr]
+	      WHERE [patient_status_mstr].[description] = 'Active'
+	
+-- Insert all patients with no Insurance Enrollment Status as 'Not Done Yet'
+INSERT INTO [NGProd].[dbo].person_ud (
+	
 
 -- Set all insured patients to 'Insured' status
 UPDATE person_ud
