@@ -1,6 +1,6 @@
-/**** Script for setting Alerts on patient accounts without insurance ****/
+/**** Preflight script for setting Alerts on patient accounts without insurance ****/
 
-/*  This script is scheduled as a job on the server to run regularly
+/*  This script is run once to set up a new workflow
 
     Our non-profit has a program for enrolling folk in insurance, and this 
     program will prompt staff to encourage patients to utilize that resource
@@ -36,6 +36,29 @@ SET @Uninterested = ( SELECT mstr_list_item_id
 		 WHERE ( mstr_list_type = 'ud_demo1'
 			AND mstr_list_item_desc = 'Uninsured - Not Interested' ) )
 
+-- Set all insured patients to 'Insured' status
+UPDATE person_ud
+SET ud_demo1_id = @Insured
+FROM [NGProd].[dbo].person
+INNER JOIN person_ud
+ON person.person_id = person_ud.person_id
+INNER JOIN patient_
+on person.person_id = patient_.person_id
+WHERE ( patient_.prim_insurance is not NULL
+     OR patient_.sec_insurance is not NULL )
+     AND person_ud.ud_demo1_id != @Insured 
+
+-- Set all uninsured patients to 'Not Done Yet' status
+UPDATE person_ud
+SET ud_demo1_id = @NotDoneYet
+FROM [NGProd].[dbo].person
+INNER JOIN person_ud
+ON person.person_id = person_ud.person_id
+INNER JOIN patient_
+on person.person_id = patient_.person_id
+WHERE ( patient_.prim_insurance is NULL
+     AND patient_.sec_insurance is NULL )
+     AND person_ud.ud_demo1_id != @NotDoneYet 
 
 --Insert Uninsured EPM Alert
 INSERT INTO [NGProd].[dbo].patient_alerts (
@@ -72,18 +95,5 @@ INSERT INTO [NGProd].[dbo].patient_alerts (
     WHERE ( ( [NGProd].[dbo].patient_.prim_insurance is NULL
         AND [NGProd].[dbo].patient_.sec_insurance is NULL )
         AND ( [NGProd].[dbo].person_ud.ud_demo1_id != @Uninterested ) )
-
-
-
-/*
-
-
-
-
-
-
-*/
-
-
 
 
