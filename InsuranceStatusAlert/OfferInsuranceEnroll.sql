@@ -37,6 +37,21 @@ SET @Uninterested = ( SELECT mstr_list_item_id
 		 WHERE ( mstr_list_type = 'ud_demo1'
 			AND mstr_list_item_desc = 'Uninsured - Not Interested' ) )
 
+
+DECLARE Medicare1 varchar(30)
+DECLARE Medicare2 varchar(30)
+DECLARE Medicaid1 varchar(30)
+DECLARE Medicaid2 varchar(30)
+
+SET @Medicare1 = '%Trillium Medicare%'
+
+SET @Medicare2 = '%Medicare B%'
+
+SET @Medicaid1 = '%Trillium Medicaid%'
+
+SET @Medicaid2 = '%DMAP%'
+
+
         /****    STATUS UPDATES    ****/
 
 -- Set all insured patients to 'Insured' status
@@ -81,6 +96,12 @@ WHERE ( patient_.prim_insurance is not NULL
      AND (patient_alerts.subject = 'SHOP - Enroll in Insurance'
      AND patient_alerts.delete_ind = 'N')
 
+-- Remove Medicaid EPM alert if patient has insurance and (undeleted) alert
+
+
+-- Remove Medicare EPM alert if patient has insurance and (undeleted) alert
+
+
 -- Reactivate Uninsured EPM alert if patient has lost insurance and has deleted alert
 -- Update 'delete_ind' to N
 UPDATE patient_alerts
@@ -92,6 +113,11 @@ WHERE ( patient_.prim_insurance is NULL
      AND patient_.sec_insurance is NULL )
      AND (patient_alerts.subject = 'SHOP - Enroll in Insurance'
      AND patient_alerts.delete_ind = 'Y')
+
+-- Reactivate Medicaid EPM alert if patient regains Medicaid and has deleted alert
+
+
+-- Reactivate Medicare EPM alert if patient regains Medicare and has deleted alert
 
 -- Insert Uninsured EPM Alert 
 -- Only if they don't already have one
@@ -143,4 +169,111 @@ INSERT INTO [NGProd].[dbo].patient_alerts (
 	    ON person.person_id = results.source_id
     WHERE  ( [NGProd].[dbo].patient_.prim_insurance is NULL
         AND [NGProd].[dbo].patient_.sec_insurance is NULL )
+        ORDER BY person.last_name
+
+
+-- Insert Medicaid EPM Alert only if they don't already have one
+INSERT INTO [NGProd].[dbo].patient_alerts (
+    practice_id
+    ,alert_id
+    ,source_id
+    ,source_type
+    ,subject
+    ,description
+    ,delete_ind
+    ,create_timestamp
+    ,created_by
+    ,modify_timestamp
+    ,modified_by
+    ,link_id
+    )
+    SELECT [NGProd].[dbo].person.practice_id
+        ,NEWID()
+        ,[NGProd].[dbo].person.person_id
+        ,'C'
+        ,'SHOP - Enroll in Insurance'
+        ,'This patient does not have insurance.'
+        ,'N'
+        ,CURRENT_TIMESTAMP
+        ,'-99'
+        ,CURRENT_TIMESTAMP
+        ,'-99'
+        ,NULL
+    FROM [NGProd].[dbo].person
+        INNER JOIN [NGProd].[dbo].patient_
+	ON person.person_id = patient_.person_id
+        INNER JOIN [NGProd].[dbo].person_ud
+	ON person_ud.person_id = person.person_id
+	    INNER JOIN [NGProd].[dbo].patient_alerts
+	ON person.person_id = patient_alerts.source_id
+	    INNER JOIN (
+	    SELECT patient_alerts.source_id
+	    FROM patient_alerts
+	    INNER JOIN patient_
+	    ON patient_alerts.source_id = patient_.person_id
+	    EXCEPT
+	    SELECT patient_alerts.source_id
+	    FROM patient_alerts
+	    INNER JOIN patient_
+	    ON patient_alerts.source_id = patient_.person_id
+	    WHERE patient_alerts.subject = 'SHOP - Enroll in Insurance')
+	    AS results
+	    ON person.person_id = results.source_id
+    WHERE  (  ( [NGProd].[dbo].patient_.prim_insurance like @Medicaid1 
+	      OR [NGProd].[dbo].patient_.sec_insurance like @Medicaid1 )
+           OR ( [NGProd].[dbo].patient_.prim_insurance like @Medicaid2
+              OR [NGProd].[dbo].patient_.sec_insurance like @Medicaid2 ) )
+        ORDER BY person.last_name
+
+-- Insert Medicare EPM Alert only if they don't already have one
+INSERT INTO [NGProd].[dbo].patient_alerts (
+    practice_id
+    ,alert_id
+    ,source_id
+    ,source_type
+    ,subject
+    ,description
+    ,delete_ind
+    ,create_timestamp
+    ,created_by
+    ,modify_timestamp
+    ,modified_by
+    ,link_id
+    )
+    SELECT [NGProd].[dbo].person.practice_id
+        ,NEWID()
+        ,[NGProd].[dbo].person.person_id
+        ,'C'
+        ,'SHOP - Enroll in Insurance'
+        ,'This patient does not have insurance.'
+        ,'N'
+        ,CURRENT_TIMESTAMP
+        ,'-99'
+        ,CURRENT_TIMESTAMP
+        ,'-99'
+        ,NULL
+    FROM [NGProd].[dbo].person
+        INNER JOIN [NGProd].[dbo].patient_
+	ON person.person_id = patient_.person_id
+        INNER JOIN [NGProd].[dbo].person_ud
+	ON person_ud.person_id = person.person_id
+	    INNER JOIN [NGProd].[dbo].patient_alerts
+	ON person.person_id = patient_alerts.source_id
+	    INNER JOIN (
+	    SELECT patient_alerts.source_id
+	    FROM patient_alerts
+	    INNER JOIN patient_
+	    ON patient_alerts.source_id = patient_.person_id
+	    EXCEPT
+	    SELECT patient_alerts.source_id
+	    FROM patient_alerts
+	    INNER JOIN patient_
+	    ON patient_alerts.source_id = patient_.person_id
+	    WHERE patient_alerts.subject = 'SHOP - Enroll in Insurance')
+	    AS results
+	    ON person.person_id = results.source_id
+    WHERE  (  ( [NGProd].[dbo].patient_.prim_insurance like @Medicare1 
+	      OR [NGProd].[dbo].patient_.sec_insurance like @Medicare1 )
+           OR ( [NGProd].[dbo].patient_.prim_insurance like @Medicare2
+              OR [NGProd].[dbo].patient_.sec_insurance like @Medicare2 ) )
         ORDER BY person.last_name
