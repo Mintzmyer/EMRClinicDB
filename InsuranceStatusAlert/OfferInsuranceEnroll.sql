@@ -12,6 +12,25 @@
 
         /***    SET REFERENCE VARIABLES     ***/
 
+DECLARE @AlertUninsuredSubj varchar(50)
+DECLARE @AlertUninsuredDesc varchar(50)
+
+DECLARE @AlertMedicaidSubj varchar(50)
+DECLARE @AlertMedicaidDesc varchar(50)
+
+DECLARE @AlertMedicareSubj varchar(50)
+DECLARE @AlertMedicareDesc varchar(50)
+
+SET @AlertUninsuredSubj = 'SHOP - Enroll in Insurance'
+SET @AlertUninsuredDesc = 'This patient does not have insurance.'
+
+SET @AlertMedicaidSubj = 'Medicaid - Insurance Alert'
+SET @AlertMedicaidDesc = 'This patient has Medicaid insurance.'
+
+SET @AlertMedicareSubj = 'Medicare - Insurance Alert'
+SET @AlertMedicareDesa = 'This patient has Medicare insurance.'
+
+
 DECLARE @Insured uniqueidentifier
 DECLARE @NotDoneYet uniqueidentifier
 DECLARE @Uninterested uniqueidentifier
@@ -32,8 +51,8 @@ SET @Uninterested = ( SELECT mstr_list_item_id
 			AND mstr_list_item_desc = 'Uninsured - Not Interested' ) )
 
 
-DECLARE Medicare TABLE (payor varchar(200))
-DECLARE Medicaid TABLE (payor varchar(200))
+DECLARE @Medicare TABLE (payor varchar(200))
+DECLARE @Medicaid TABLE (payor varchar(200))
 
 -- Add Medicare/Medicaid payors to the list as needed:
 INSERT INTO @Medicare (payor) VALUES ('Trillium Medicare'), ('Medicare B')
@@ -176,11 +195,9 @@ INSERT INTO [NGProd].[dbo].patient_alerts (
     FROM [NGProd].[dbo].person
         INNER JOIN [NGProd].[dbo].patient_
 	ON person.person_id = patient_.person_id
-        INNER JOIN [NGProd].[dbo].person_ud
-	ON person_ud.person_id = person.person_id
 	    INNER JOIN [NGProd].[dbo].patient_alerts
 	ON person.person_id = patient_alerts.source_id
-	    INNER JOIN (
+	INNER JOIN (
 	    SELECT patient_alerts.source_id
 	    FROM patient_alerts
 	    INNER JOIN patient_
@@ -192,7 +209,7 @@ INSERT INTO [NGProd].[dbo].patient_alerts (
 	    ON patient_alerts.source_id = patient_.person_id
 	    WHERE patient_alerts.subject = 'SHOP - Enroll in Insurance')
 	    AS results
-	    ON person.person_id = results.source_id
+	ON person.person_id = results.source_id
     WHERE  ( [NGProd].[dbo].patient_.prim_insurance is NULL
         AND [NGProd].[dbo].patient_.sec_insurance is NULL )
         ORDER BY person.last_name
@@ -228,11 +245,9 @@ INSERT INTO [NGProd].[dbo].patient_alerts (
     FROM [NGProd].[dbo].person
         INNER JOIN [NGProd].[dbo].patient_
 	ON person.person_id = patient_.person_id
-        INNER JOIN [NGProd].[dbo].person_ud
-	ON person_ud.person_id = person.person_id
-	    INNER JOIN [NGProd].[dbo].patient_alerts
-	ON person.person_id = patient_alerts.source_id
-	    INNER JOIN (
+	--INNER JOIN [NGProd].[dbo].patient_alerts
+	--ON person.person_id = patient_alerts.source_id
+	INNER JOIN (
 	    SELECT patient_alerts.source_id
 	    FROM patient_alerts
 	    INNER JOIN patient_
@@ -242,9 +257,9 @@ INSERT INTO [NGProd].[dbo].patient_alerts (
 	    FROM patient_alerts
 	    INNER JOIN patient_
 	    ON patient_alerts.source_id = patient_.person_id
-	    WHERE patient_alerts.subject = 'Medicaid - Insurance Alerte')
+	    WHERE patient_alerts.subject = 'Medicaid - Insurance Alert')
 	    AS results
-	    ON person.person_id = results.source_id
+	ON person.person_id = results.source_id
     WHERE  ( [NGProd].[dbo].patient_.prim_insurance IN (SELECT payor FROM @Medicaid)
 	      OR [NGProd].[dbo].patient_.sec_insurance IN (SELECT payor FROM @Medicaid) )
         ORDER BY person.last_name
@@ -279,23 +294,25 @@ INSERT INTO [NGProd].[dbo].patient_alerts (
     FROM [NGProd].[dbo].person
         INNER JOIN [NGProd].[dbo].patient_
 	ON person.person_id = patient_.person_id
-        INNER JOIN [NGProd].[dbo].person_ud
-	ON person_ud.person_id = person.person_id
-	    INNER JOIN [NGProd].[dbo].patient_alerts
-	ON person.person_id = patient_alerts.source_id
-	    INNER JOIN (
-	    SELECT patient_alerts.source_id
-	    FROM patient_alerts
-	    INNER JOIN patient_
-	    ON patient_alerts.source_id = patient_.person_id
-	    EXCEPT
-	    SELECT patient_alerts.source_id
-	    FROM patient_alerts
-	    INNER JOIN patient_
-	    ON patient_alerts.source_id = patient_.person_id
-	    WHERE patient_alerts.subject = 'Medicare - Insurance Alert')
-	    AS results
-	    ON person.person_id = results.source_id
     WHERE  ( [NGProd].[dbo].patient_.prim_insurance IN (SELECT payor FROM @Medicare)
-	      OR [NGProd].[dbo].patient_.sec_insurance IN (SELECT payor FROM @Medicare) )
-        ORDER BY person.last_name
+	OR [NGProd].[dbo].patient_.sec_insurance IN (SELECT payor FROM @Medicare) )
+     -- Except out the patients who already have an alert
+     EXCEPT
+     SELECT [NGProd].[dbo].person.practice_id
+        ,NEWID()
+        ,[NGProd].[dbo].person.person_id
+        ,'C'
+        ,'Medicare - Insurance Alert'
+        ,'This patient has Medicare insurance.'
+        ,'N'
+        ,CURRENT_TIMESTAMP
+        ,'-99'
+        ,CURRENT_TIMESTAMP
+        ,'-99'
+        ,NULL
+    FROM [NGProd].[dbo].person
+        INNER JOIN [NGProd].[dbo].patient_
+	ON person.person_id = patient_.person_id
+	JOIN patient_alerts
+	ON patient_.person_id = patient_alerts.source_id
+    WHERE  patient_alerts.subject = 'Medicare - Insurance Alert'
