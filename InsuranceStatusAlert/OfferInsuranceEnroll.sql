@@ -38,18 +38,12 @@ SET @Uninterested = ( SELECT mstr_list_item_id
 			AND mstr_list_item_desc = 'Uninsured - Not Interested' ) )
 
 
-DECLARE Medicare1 varchar(30)
-DECLARE Medicare2 varchar(30)
-DECLARE Medicaid1 varchar(30)
-DECLARE Medicaid2 varchar(30)
+DECLARE Medicare TABLE (payor varchar(200))
+DECLARE Medicaid TABLE (payor varchar(200))
 
-SET @Medicare1 = '%Trillium Medicare%'
-
-SET @Medicare2 = '%Medicare B%'
-
-SET @Medicaid1 = '%Trillium Medicaid%'
-
-SET @Medicaid2 = '%DMAP%'
+-- Add Medicare/Medicaid payors to the list as needed:
+INSERT INTO @Medicare (payor) VALUES ('Trillium Medicare'), ('Medicare B')
+INSERT INTO @Medicaid (payor) VALUES ('Trillium Medicaid'), ('DMAP')
 
 
         /****    STATUS UPDATES    ****/
@@ -84,6 +78,8 @@ WHERE ( patient_.prim_insurance is NULL
 
         /****    ALERT UPDATES    ****/
 
+	/**    REMOVE EXPIRED ALERT    **/
+
 -- Remove Uninsured EPM alert if patient has insurance and (undeleted) alert
 -- Update 'delete_ind' to Y
 UPDATE patient_alerts
@@ -96,11 +92,29 @@ WHERE ( patient_.prim_insurance is not NULL
      AND (patient_alerts.subject = 'SHOP - Enroll in Insurance'
      AND patient_alerts.delete_ind = 'N')
 
--- Remove Medicaid EPM alert if patient has insurance and (undeleted) alert
+-- Remove Medicaid EPM alert if patient has no Medicaid insurance and (undeleted) alert
+UPDATE patient_alerts
+SET delete_ind = 'Y'
+FROM [NGProd].[dbo].patient_alerts
+INNER JOIN patient_
+ON patient_.person_id = patient_alerts.source_id
+WHERE ( ( patient_.prim_insurance NOT IN (SELECT payor FROM @Medicaid)
+       AND patient_.sec_insurance NOT IN (SELECT payor FROM @Medicaid) )
+     AND ( patient_alerts.subject = 'Medicaid - Insurance Alert'
+       AND patient_alerts.delete_ind = 'N') )
 
+-- Remove Medicare EPM alert if patient has no Medicare insurance and (undeleted) alert
+UPDATE patient_alerts
+SET delete_ind = 'Y'
+FROM [NGProd].[dbo].patient_alerts
+INNER JOIN patient_
+ON patient_.person_id = patient_alerts.source_id
+WHERE ( ( patient_.prim_insurance NOT IN (SELECT payor FROM @Medicare)
+       AND patient_.sec_insurance NOT IN (SELECT payor FROM @Medicare) )
+     AND ( patient_alerts.subject = 'Medicare - Insurance Alert'
+       AND patient_alerts.delete_ind = 'N') )
 
--- Remove Medicare EPM alert if patient has insurance and (undeleted) alert
-
+        /**    REACTIVATE OLD ALERTS    **/
 
 -- Reactivate Uninsured EPM alert if patient has lost insurance and has deleted alert
 -- Update 'delete_ind' to N
@@ -115,9 +129,27 @@ WHERE ( patient_.prim_insurance is NULL
      AND patient_alerts.delete_ind = 'Y')
 
 -- Reactivate Medicaid EPM alert if patient regains Medicaid and has deleted alert
-
+UPDATE patient_alerts
+SET delete_ind = 'N'
+FROM [NGProd].[dbo].patient_alerts
+INNER JOIN patient_
+ON patient_.person_id = patient_alerts.source_id
+WHERE ( ( patient_.prim_insurance IN (SELECT payor FROM @Medicaid)
+       OR patient_.sec_insurance IN (SELECT payor FROM @Medicaid) )
+     AND ( patient_alerts.subject = 'Medicaid - Insurance Alert'
+       AND patient_alerts.delete_ind = 'Y') )
 
 -- Reactivate Medicare EPM alert if patient regains Medicare and has deleted alert
+UPDATE patient_alerts
+SET delete_ind = 'N'
+FROM [NGProd].[dbo].patient_alerts
+INNER JOIN patient_
+ON patient_.person_id = patient_alerts.source_id
+WHERE ( ( patient_.prim_insurance IN (SELECT payor FROM @Medicare)
+       OR patient_.sec_insurance IN (SELECT payor FROM @Medicare) )
+     AND ( patient_alerts.subject = 'Medicare - Insurance Alert'
+       AND patient_alerts.delete_ind = 'Y') )
+        /**    INSERT NEW ALERTS    **/
 
 -- Insert Uninsured EPM Alert 
 -- Only if they don't already have one
@@ -219,10 +251,8 @@ INSERT INTO [NGProd].[dbo].patient_alerts (
 	    WHERE patient_alerts.subject = 'Medicaid - Insurance Alerte')
 	    AS results
 	    ON person.person_id = results.source_id
-    WHERE  (  ( [NGProd].[dbo].patient_.prim_insurance like @Medicaid1 
-	      OR [NGProd].[dbo].patient_.sec_insurance like @Medicaid1 )
-           OR ( [NGProd].[dbo].patient_.prim_insurance like @Medicaid2
-              OR [NGProd].[dbo].patient_.sec_insurance like @Medicaid2 ) )
+    WHERE  ( [NGProd].[dbo].patient_.prim_insurance IN (SELECT payor FROM @Medicaid)
+	      OR [NGProd].[dbo].patient_.sec_insurance IN (SELECT payor FROM @Medicaid) )
         ORDER BY person.last_name
 
 -- Insert Medicare EPM Alert only if they don't already have one
@@ -272,8 +302,6 @@ INSERT INTO [NGProd].[dbo].patient_alerts (
 	    WHERE patient_alerts.subject = 'Medicare - Insurance Alert')
 	    AS results
 	    ON person.person_id = results.source_id
-    WHERE  (  ( [NGProd].[dbo].patient_.prim_insurance like @Medicare1 
-	      OR [NGProd].[dbo].patient_.sec_insurance like @Medicare1 )
-           OR ( [NGProd].[dbo].patient_.prim_insurance like @Medicare2
-              OR [NGProd].[dbo].patient_.sec_insurance like @Medicare2 ) )
+    WHERE  ( [NGProd].[dbo].patient_.prim_insurance IN (SELECT payor FROM @Medicare)
+	      OR [NGProd].[dbo].patient_.sec_insurance IN (SELECT payor FROM @Medicare) )
         ORDER BY person.last_name
