@@ -191,8 +191,8 @@ INSERT INTO [NGProd].[dbo].patient_alerts (
         ,NEWID()
         ,[NGProd].[dbo].person.person_id
         ,'C'
-        ,'SHOP - Enroll in Insurance'
-        ,'This patient does not have insurance.'
+        ,'Medicaid - Insurance Alert'
+        ,'This patient has Medicaid insurance.'
         ,'N'
         ,CURRENT_TIMESTAMP
         ,'-99'
@@ -216,7 +216,7 @@ INSERT INTO [NGProd].[dbo].patient_alerts (
 	    FROM patient_alerts
 	    INNER JOIN patient_
 	    ON patient_alerts.source_id = patient_.person_id
-	    WHERE patient_alerts.subject = 'SHOP - Enroll in Insurance')
+	    WHERE patient_alerts.subject = 'Medicaid - Insurance Alerte')
 	    AS results
 	    ON person.person_id = results.source_id
     WHERE  (  ( [NGProd].[dbo].patient_.prim_insurance like @Medicaid1 
@@ -244,8 +244,8 @@ INSERT INTO [NGProd].[dbo].patient_alerts (
         ,NEWID()
         ,[NGProd].[dbo].person.person_id
         ,'C'
-        ,'SHOP - Enroll in Insurance'
-        ,'This patient does not have insurance.'
+        ,'Medicare - Insurance Alert'
+        ,'This patient has Medicare insurance.'
         ,'N'
         ,CURRENT_TIMESTAMP
         ,'-99'
@@ -269,7 +269,7 @@ INSERT INTO [NGProd].[dbo].patient_alerts (
 	    FROM patient_alerts
 	    INNER JOIN patient_
 	    ON patient_alerts.source_id = patient_.person_id
-	    WHERE patient_alerts.subject = 'SHOP - Enroll in Insurance')
+	    WHERE patient_alerts.subject = 'Medicare - Insurance Alert')
 	    AS results
 	    ON person.person_id = results.source_id
     WHERE  (  ( [NGProd].[dbo].patient_.prim_insurance like @Medicare1 
