@@ -102,7 +102,7 @@ INNER JOIN patient_
 ON patient_.person_id = patient_alerts.source_id
 WHERE ( patient_.prim_insurance is not NULL
      OR patient_.sec_insurance is not NULL )
-     AND (patient_alerts.subject = 'SHOP - Enroll in Insurance'
+     AND (patient_alerts.subject = @AlertUninsuredSubj
      AND patient_alerts.delete_ind = 'N')
 
 -- Remove Medicaid EPM alert if patient has no Medicaid insurance and (undeleted) alert
@@ -113,7 +113,7 @@ INNER JOIN patient_
 ON patient_.person_id = patient_alerts.source_id
 WHERE ( ( patient_.prim_insurance NOT IN (SELECT payor FROM @Medicaid)
        AND patient_.sec_insurance NOT IN (SELECT payor FROM @Medicaid) )
-     AND ( patient_alerts.subject = 'Medicaid - Insurance Alert'
+     AND ( patient_alerts.subject = @AlertMedicaidSubj
        AND patient_alerts.delete_ind = 'N') )
 
 -- Remove Medicare EPM alert if patient has no Medicare insurance and (undeleted) alert
@@ -124,7 +124,7 @@ INNER JOIN patient_
 ON patient_.person_id = patient_alerts.source_id
 WHERE ( ( patient_.prim_insurance NOT IN (SELECT payor FROM @Medicare)
        AND patient_.sec_insurance NOT IN (SELECT payor FROM @Medicare) )
-     AND ( patient_alerts.subject = 'Medicare - Insurance Alert'
+     AND ( patient_alerts.subject = @AlertMedicareSubj
        AND patient_alerts.delete_ind = 'N') )
 
         /**    REACTIVATE OLD ALERTS    **/
@@ -138,7 +138,7 @@ INNER JOIN patient_
 ON patient_.person_id = patient_alerts.source_id
 WHERE ( patient_.prim_insurance is NULL
      AND patient_.sec_insurance is NULL )
-     AND (patient_alerts.subject = 'SHOP - Enroll in Insurance'
+     AND (patient_alerts.subject = @AlertUninsuredSubj
      AND patient_alerts.delete_ind = 'Y')
 
 -- Reactivate Medicaid EPM alert if patient regains Medicaid and has deleted alert
@@ -149,7 +149,7 @@ INNER JOIN patient_
 ON patient_.person_id = patient_alerts.source_id
 WHERE ( ( patient_.prim_insurance IN (SELECT payor FROM @Medicaid)
        OR patient_.sec_insurance IN (SELECT payor FROM @Medicaid) )
-     AND ( patient_alerts.subject = 'Medicaid - Insurance Alert'
+     AND ( patient_alerts.subject = @AlertMedicaidSubj
        AND patient_alerts.delete_ind = 'Y') )
 
 -- Reactivate Medicare EPM alert if patient regains Medicare and has deleted alert
@@ -160,7 +160,7 @@ INNER JOIN patient_
 ON patient_.person_id = patient_alerts.source_id
 WHERE ( ( patient_.prim_insurance IN (SELECT payor FROM @Medicare)
        OR patient_.sec_insurance IN (SELECT payor FROM @Medicare) )
-     AND ( patient_alerts.subject = 'Medicare - Insurance Alert'
+     AND ( patient_alerts.subject = @AlertMedicareSubj
        AND patient_alerts.delete_ind = 'Y') )
         /**    INSERT NEW ALERTS    **/
 
@@ -184,8 +184,8 @@ INSERT INTO [NGProd].[dbo].patient_alerts (
         ,NEWID()
         ,[NGProd].[dbo].person.person_id
         ,'C'
-        ,'SHOP - Enroll in Insurance'
-        ,'This patient does not have insurance.'
+        ,@AlertUninsuredSubj
+        ,@AlertUninsuredDesc
         ,'N'
         ,CURRENT_TIMESTAMP
         ,'-99'
@@ -207,7 +207,7 @@ INSERT INTO [NGProd].[dbo].patient_alerts (
 	    FROM patient_alerts
 	    INNER JOIN patient_
 	    ON patient_alerts.source_id = patient_.person_id
-	    WHERE patient_alerts.subject = 'SHOP - Enroll in Insurance')
+	    WHERE patient_alerts.subject = @AlertUninsuredSubj)
 	    AS results
 	ON person.person_id = results.source_id
     WHERE  ( [NGProd].[dbo].patient_.prim_insurance is NULL
@@ -234,8 +234,8 @@ INSERT INTO [NGProd].[dbo].patient_alerts (
         ,NEWID()
         ,[NGProd].[dbo].person.person_id
         ,'C'
-        ,'Medicaid - Insurance Alert'
-        ,'This patient has Medicaid insurance.'
+        ,@AlertMedicaidSubj
+        ,@AlertMedicaidDesc
         ,'N'
         ,CURRENT_TIMESTAMP
         ,'-99'
@@ -245,24 +245,28 @@ INSERT INTO [NGProd].[dbo].patient_alerts (
     FROM [NGProd].[dbo].person
         INNER JOIN [NGProd].[dbo].patient_
 	ON person.person_id = patient_.person_id
-	--INNER JOIN [NGProd].[dbo].patient_alerts
-	--ON person.person_id = patient_alerts.source_id
-	INNER JOIN (
-	    SELECT patient_alerts.source_id
-	    FROM patient_alerts
-	    INNER JOIN patient_
-	    ON patient_alerts.source_id = patient_.person_id
-	    EXCEPT
-	    SELECT patient_alerts.source_id
-	    FROM patient_alerts
-	    INNER JOIN patient_
-	    ON patient_alerts.source_id = patient_.person_id
-	    WHERE patient_alerts.subject = 'Medicaid - Insurance Alert')
-	    AS results
-	ON person.person_id = results.source_id
     WHERE  ( [NGProd].[dbo].patient_.prim_insurance IN (SELECT payor FROM @Medicaid)
-	      OR [NGProd].[dbo].patient_.sec_insurance IN (SELECT payor FROM @Medicaid) )
-        ORDER BY person.last_name
+	OR [NGProd].[dbo].patient_.sec_insurance IN (SELECT payor FROM @Medicaid) )
+     -- Except out the patients who already have an alert
+     EXCEPT
+     SELECT [NGProd].[dbo].person.practice_id
+        ,NEWID()
+        ,[NGProd].[dbo].person.person_id
+        ,'C'
+        ,@AlertMedicaidSubj
+        ,@AlertMedicaidDesc
+        ,'N'
+        ,CURRENT_TIMESTAMP
+        ,'-99'
+        ,CURRENT_TIMESTAMP
+        ,'-99'
+        ,NULL
+    FROM [NGProd].[dbo].person
+        INNER JOIN [NGProd].[dbo].patient_
+	ON person.person_id = patient_.person_id
+	JOIN patient_alerts
+	ON patient_.person_id = patient_alerts.source_id
+    WHERE  patient_alerts.subject = @AlertMedicaidSubje
 
 -- Insert Medicare EPM Alert only if they don't already have one
 INSERT INTO [NGProd].[dbo].patient_alerts (
@@ -283,8 +287,8 @@ INSERT INTO [NGProd].[dbo].patient_alerts (
         ,NEWID()
         ,[NGProd].[dbo].person.person_id
         ,'C'
-        ,'Medicare - Insurance Alert'
-        ,'This patient has Medicare insurance.'
+        ,@AlertMedicareSubj
+        ,@AlertMedicareDesc
         ,'N'
         ,CURRENT_TIMESTAMP
         ,'-99'
@@ -302,8 +306,8 @@ INSERT INTO [NGProd].[dbo].patient_alerts (
         ,NEWID()
         ,[NGProd].[dbo].person.person_id
         ,'C'
-        ,'Medicare - Insurance Alert'
-        ,'This patient has Medicare insurance.'
+        ,@AlertMedicareSubj
+        ,@AlertMedicareDesc
         ,'N'
         ,CURRENT_TIMESTAMP
         ,'-99'
@@ -315,4 +319,4 @@ INSERT INTO [NGProd].[dbo].patient_alerts (
 	ON person.person_id = patient_.person_id
 	JOIN patient_alerts
 	ON patient_.person_id = patient_alerts.source_id
-    WHERE  patient_alerts.subject = 'Medicare - Insurance Alert'
+    WHERE  patient_alerts.subject = @AlertMedicareSubj
