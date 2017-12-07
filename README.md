@@ -21,4 +21,21 @@ This script creates a report by month of all:
     - The insurance the paid for it
     - The pharmacy that dispensed it
 
+# - InsuranceStatusAlert
+The clinic hopes to better utilize a department for enrolling patients in ACA/OHP, because our low-income demographic often experience barriers to enrolling.
+As the project progressed, it became apparent that flagging Medicare and Medicaid patients is similarly useful, to better route them to our payor-specific providers
+
+This script is a scheduled job that regularly:
+    - Updates a client-defined status within the patient profile if they:
+        1) have insurance
+        2) declined/cannot obtain insurance
+        3) been referred to get insurance
+        4) or haven't been offered.
+    - Sets an alert when opening the patient profile if they:
+        1) have no insurance on file
+        2) have Medicare
+        3) have Medicaid
+    - Maintains the above status and alert based on filed insurance
+
+
 
