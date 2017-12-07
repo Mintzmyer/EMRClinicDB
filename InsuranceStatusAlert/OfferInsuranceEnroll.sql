@@ -1,23 +1,17 @@
-/**** Script for setting Alerts on patient accounts without insurance ****/
+/**** Script for setting Alerts on patient accounts without insurance, with Medicaid and with Medicare ****/
 
 /*  This script is scheduled as a job on the server to run regularly
 
     Our non-profit has a program for enrolling folk in insurance, and this 
     program will prompt staff to encourage patients to utilize that resource
+
+    We also have payor-specific providers, so flagging Medicare and Medicaid
+    patients will help us funnel them to the right place
     
 */
 
+        /***    SET REFERENCE VARIABLES     ***/
 
--- patient_ table holds prim_insurance, sec_insurance columns
--- person_ud table holds client defined options
--- mstr_lists table holds list information: ud_demo1 is 'Insurance Enrollment Status'. 
--- For reference:
-    -- Insured id = 6204564E...
-    -- Not Done id = 19FE351A...
-    -- Unins NI id = E4740E1F...
-    -- Unins Ref id = 484D32A8...
-
---Set Reference Variables
 DECLARE @Insured uniqueidentifier
 DECLARE @NotDoneYet uniqueidentifier
 DECLARE @Uninterested uniqueidentifier
