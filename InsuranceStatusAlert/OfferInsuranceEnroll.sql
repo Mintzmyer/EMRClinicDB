@@ -28,7 +28,7 @@ SET @AlertMedicaidSubj = 'Medicaid - Insurance Alert'
 SET @AlertMedicaidDesc = 'This patient has Medicaid insurance.'
 
 SET @AlertMedicareSubj = 'Medicare - Insurance Alert'
-SET @AlertMedicareDesa = 'This patient has Medicare insurance.'
+SET @AlertMedicareDesc = 'This patient has Medicare insurance.'
 
 
 DECLARE @Insured uniqueidentifier
@@ -245,28 +245,19 @@ INSERT INTO [NGProd].[dbo].patient_alerts (
     FROM [NGProd].[dbo].person
         INNER JOIN [NGProd].[dbo].patient_
 	ON person.person_id = patient_.person_id
-    WHERE  ( [NGProd].[dbo].patient_.prim_insurance IN (SELECT payor FROM @Medicaid)
+	INNER JOIN (
+	    SELECT patient_.person_id
+	    FROM patient_
+	    EXCEPT
+	    SELECT patient_.person_id
+	    FROM patient_ INNER JOIN patient_alerts 
+	    ON patient_.person_id = patient_alerts.source_id
+	    WHERE patient_alerts.subject = @AlertMedicaidSubj)
+	    AS results
+	ON person.person_id = results.person_id
+    WHERE 
+    ( [NGProd].[dbo].patient_.prim_insurance IN (SELECT payor FROM @Medicaid)
 	OR [NGProd].[dbo].patient_.sec_insurance IN (SELECT payor FROM @Medicaid) )
-     -- Except out the patients who already have an alert
-     EXCEPT
-     SELECT [NGProd].[dbo].person.practice_id
-        ,NEWID()
-        ,[NGProd].[dbo].person.person_id
-        ,'C'
-        ,@AlertMedicaidSubj
-        ,@AlertMedicaidDesc
-        ,'N'
-        ,CURRENT_TIMESTAMP
-        ,'-99'
-        ,CURRENT_TIMESTAMP
-        ,'-99'
-        ,NULL
-    FROM [NGProd].[dbo].person
-        INNER JOIN [NGProd].[dbo].patient_
-	ON person.person_id = patient_.person_id
-	JOIN patient_alerts
-	ON patient_.person_id = patient_alerts.source_id
-    WHERE  patient_alerts.subject = @AlertMedicaidSubje
 
 -- Insert Medicare EPM Alert only if they don't already have one
 INSERT INTO [NGProd].[dbo].patient_alerts (
@@ -298,25 +289,16 @@ INSERT INTO [NGProd].[dbo].patient_alerts (
     FROM [NGProd].[dbo].person
         INNER JOIN [NGProd].[dbo].patient_
 	ON person.person_id = patient_.person_id
-    WHERE  ( [NGProd].[dbo].patient_.prim_insurance IN (SELECT payor FROM @Medicare)
+	INNER JOIN (
+	    SELECT patient_.person_id
+	    FROM patient_
+	    EXCEPT
+	    SELECT patient_.person_id
+	    FROM patient_ INNER JOIN patient_alerts 
+	    ON patient_.person_id = patient_alerts.source_id
+	    WHERE patient_alerts.subject = @AlertMedicareSubj)
+	    AS results
+	ON person.person_id = results.person_id
+    WHERE 
+    ( [NGProd].[dbo].patient_.prim_insurance IN (SELECT payor FROM @Medicare)
 	OR [NGProd].[dbo].patient_.sec_insurance IN (SELECT payor FROM @Medicare) )
-     -- Except out the patients who already have an alert
-     EXCEPT
-     SELECT [NGProd].[dbo].person.practice_id
-        ,NEWID()
-        ,[NGProd].[dbo].person.person_id
-        ,'C'
-        ,@AlertMedicareSubj
-        ,@AlertMedicareDesc
-        ,'N'
-        ,CURRENT_TIMESTAMP
-        ,'-99'
-        ,CURRENT_TIMESTAMP
-        ,'-99'
-        ,NULL
-    FROM [NGProd].[dbo].person
-        INNER JOIN [NGProd].[dbo].patient_
-	ON person.person_id = patient_.person_id
-	JOIN patient_alerts
-	ON patient_.person_id = patient_alerts.source_id
-    WHERE  patient_alerts.subject = @AlertMedicareSubj
