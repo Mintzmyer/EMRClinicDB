@@ -151,12 +151,18 @@ WHERE ( patient_alerts.subject = @AlertMedicaidSubj
 UPDATE patient_alerts
 SET delete_ind = 'Y'
 FROM [NGProd].[dbo].patient_alerts
-INNER JOIN patient_
-ON patient_.person_id = patient_alerts.source_id
-WHERE ( ( patient_.prim_insurance NOT IN (SELECT payor FROM @Medicare)
-       AND patient_.sec_insurance NOT IN (SELECT payor FROM @Medicare) )
-     AND ( patient_alerts.subject = @AlertMedicareSubj
-       AND patient_alerts.delete_ind = 'N') )
+INNER JOIN person on patient_alerts.source_id = person.person_id
+INNER JOIN ( SELECT patient_.person_id FROM patient_
+	     INTERSECT
+	     SELECT person_payer.person_id FROM person_payer )
+AS insured ON patient_alerts.source_id = insured.person_id
+INNER JOIN ( SELECT person_payer.person_id FROM person_payer
+             EXCEPT
+             SELECT person_payer.person_id FROM person_payer
+             WHERE person_payer.payer_id IN (SELECT payor FROM @Medicare) )
+AS noMedicare ON patient_alerts.source_id = noMedicare.person_id
+WHERE ( patient_alerts.subject = @AlertMedicareSubj
+       AND patient_alerts.delete_ind = 'N')
 
         /**    REACTIVATE OLD ALERTS    **/
 
