@@ -282,21 +282,20 @@ INSERT INTO [NGProd].[dbo].patient_alerts (
         ,'-99'
         ,NULL
     FROM [NGProd].[dbo].person
-        INNER JOIN [NGProd].[dbo].patient_
-	ON person.person_id = patient_.person_id
-	INNER JOIN (
-	    SELECT patient_.person_id
-	    FROM patient_
-	    EXCEPT
-	    SELECT patient_.person_id
-	    FROM patient_ INNER JOIN patient_alerts 
-	    ON patient_.person_id = patient_alerts.source_id
-	    WHERE patient_alerts.subject = @AlertMedicaidSubj)
-	    AS results
-	ON person.person_id = results.person_id
-    WHERE 
-    ( [NGProd].[dbo].patient_.prim_insurance IN (SELECT payor FROM @Medicaid)
-	OR [NGProd].[dbo].patient_.sec_insurance IN (SELECT payor FROM @Medicaid) )
+    INNER JOIN ( SELECT patient_.person_id FROM patient_
+	         INTERSECT
+	         SELECT person_payer.person_id FROM person_payer )
+    AS insured ON patient_alerts.source_id = insured.person_id
+    INNER JOIN ( SELECT person_payer.person_id FROM person_payer
+                 EXCEPT
+                 SELECT person_payer.person_id FROM person_payer
+                 WHERE person_payer.payer_id NOT IN (SELECT payor FROM @Medicare) )
+    AS yesMedicare ON patient_alerts.source_id = yesMedicare.person_id
+    INNER JOIN ( SELECT patient_.person_id FROM patient_
+	         EXCEPT
+		 SELECT patient_alerts.source_id FROM patient_alerts 
+		 WHERE patient_alerts.subject = @AlertMedicareSubj )
+    AS noAlert ON person.person_id = noAlert.person_id
 
 -- Insert Medicare EPM Alert only if they don't already have one
 INSERT INTO [NGProd].[dbo].patient_alerts (
