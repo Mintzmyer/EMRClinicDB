@@ -171,12 +171,12 @@ WHERE ( patient_alerts.subject = @AlertMedicareSubj
 UPDATE patient_alerts
 SET delete_ind = 'N'
 FROM [NGProd].[dbo].patient_alerts
-INNER JOIN patient_
-ON patient_.person_id = patient_alerts.source_id
-WHERE ( patient_.prim_insurance is NULL
-     AND patient_.sec_insurance is NULL )
-     AND (patient_alerts.subject = @AlertUninsuredSubj
-     AND patient_alerts.delete_ind = 'Y')
+INNER JOIN ( SELECT patient_.person_id FROM patient_
+	     EXCEPT
+	     SELECT person_payer.person_id FROM person_payer )
+AS uninsured ON patient_alerts.source_id = uninsured.person_id
+WHERE (patient_alerts.subject = @AlertUninsuredSubj
+     AND patient_alerts.delete_ind = 'Y'
 
 -- Reactivate Medicaid EPM alert if patient regains Medicaid and has deleted alert
 UPDATE patient_alerts
