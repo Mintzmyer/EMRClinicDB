@@ -105,9 +105,9 @@ WHERE person_ud.ud_demo1_id != @Insured
 UPDATE person_ud
 SET ud_demo1_id = @NotDoneYet
 FROM [NGProd].[dbo].person_ud
-INNER JOIN ( SELECT patient_.person_id FROM patient_
+INNER JOIN ( SELECT patient_.person_id FROM NGProd.dbo.patient_
              EXCEPT
-             SELECT person_payer.person_id FROM person_payer ) 
+             SELECT person_payer.person_id FROM NGProd.dbo.person_payer ) 
 AS uninsured ON person_ud.person_id = uninsured.person_id
 WHERE (    person_ud.ud_demo1_id != @NotDoneYet
 	OR person_ud.ud_demo1_id != @Uninterested
@@ -123,9 +123,9 @@ WHERE (    person_ud.ud_demo1_id != @NotDoneYet
 UPDATE patient_alerts
 SET delete_ind = 'Y'
 FROM [NGProd].[dbo].patient_alerts
-INNER JOIN ( SELECT patient_.person_id FROM patient_
+INNER JOIN ( SELECT patient_.person_id FROM NGProd.dbo.patient_
 	     INTERSECT
-	     SELECT person_payer.person_id FROM person_payer )
+	     SELECT person_payer.person_id FROM NGProd.dbo.person_payer )
 AS insured ON patient_alerts.source_id = insured.person_id
 WHERE (patient_alerts.subject = @AlertUninsuredSubj
      AND patient_alerts.delete_ind = 'N')
@@ -134,14 +134,14 @@ WHERE (patient_alerts.subject = @AlertUninsuredSubj
 UPDATE patient_alerts
 SET delete_ind = 'Y'
 FROM [NGProd].[dbo].patient_alerts
-INNER JOIN person on patient_alerts.source_id = person.person_id
-INNER JOIN ( SELECT patient_.person_id FROM patient_
+INNER JOIN NGProd.dbo.person on patient_alerts.source_id = person.person_id
+INNER JOIN ( SELECT patient_.person_id FROM NGProd.dbo.patient_
 	     INTERSECT
-	     SELECT person_payer.person_id FROM person_payer )
+	     SELECT person_payer.person_id FROM NGProd.dbo.person_payer )
 AS insured ON patient_alerts.source_id = insured.person_id
-INNER JOIN ( SELECT person_payer.person_id FROM person_payer
+INNER JOIN ( SELECT person_payer.person_id FROM NGProd.dbo.person_payer
              EXCEPT
-             SELECT person_payer.person_id FROM person_payer
+             SELECT person_payer.person_id FROM NGProd.dbo.person_payer
              WHERE person_payer.payer_id IN (SELECT payor FROM @Medicaid) )
 AS noMedicaid ON patient_alerts.source_id = noMedicaid.person_id
 WHERE ( patient_alerts.subject = @AlertMedicaidSubj
@@ -151,14 +151,14 @@ WHERE ( patient_alerts.subject = @AlertMedicaidSubj
 UPDATE patient_alerts
 SET delete_ind = 'Y'
 FROM [NGProd].[dbo].patient_alerts
-INNER JOIN person on patient_alerts.source_id = person.person_id
-INNER JOIN ( SELECT patient_.person_id FROM patient_
+INNER JOIN NGProd.dbo.person on patient_alerts.source_id = person.person_id
+INNER JOIN ( SELECT patient_.person_id FROM NGProd.dbo.patient_
 	     INTERSECT
-	     SELECT person_payer.person_id FROM person_payer )
+	     SELECT person_payer.person_id FROM NGProd.dbo.person_payer )
 AS insured ON patient_alerts.source_id = insured.person_id
-INNER JOIN ( SELECT person_payer.person_id FROM person_payer
+INNER JOIN ( SELECT person_payer.person_id FROM NGProd.dbo.person_payer
              EXCEPT
-             SELECT person_payer.person_id FROM person_payer
+             SELECT person_payer.person_id FROM NGProd.dbo.person_payer
              WHERE person_payer.payer_id IN (SELECT payor FROM @Medicare) )
 AS noMedicare ON patient_alerts.source_id = noMedicare.person_id
 WHERE ( patient_alerts.subject = @AlertMedicareSubj
@@ -171,9 +171,9 @@ WHERE ( patient_alerts.subject = @AlertMedicareSubj
 UPDATE patient_alerts
 SET delete_ind = 'N'
 FROM [NGProd].[dbo].patient_alerts
-INNER JOIN ( SELECT patient_.person_id FROM patient_
+INNER JOIN ( SELECT patient_.person_id FROM NGProd.dbo.patient_
 	     EXCEPT
-	     SELECT person_payer.person_id FROM person_payer )
+	     SELECT person_payer.person_id FROM NGProd.dbo.person_payer )
 AS uninsured ON patient_alerts.source_id = uninsured.person_id
 WHERE (patient_alerts.subject = @AlertUninsuredSubj
      AND patient_alerts.delete_ind = 'Y'
@@ -182,14 +182,14 @@ WHERE (patient_alerts.subject = @AlertUninsuredSubj
 UPDATE patient_alerts
 SET delete_ind = 'N'
 FROM [NGProd].[dbo].patient_alerts
-INNER JOIN person on patient_alerts.source_id = person.person_id
-INNER JOIN ( SELECT patient_.person_id FROM patient_
+INNER JOIN NGProd.dbo.person on patient_alerts.source_id = person.person_id
+INNER JOIN ( SELECT patient_.person_id FROM NGProd.dbo.patient_
 	     INTERSECT
-	     SELECT person_payer.person_id FROM person_payer )
+	     SELECT person_payer.person_id FROM NGProd.dbo.person_payer )
 AS insured ON patient_alerts.source_id = insured.person_id
-INNER JOIN ( SELECT person_payer.person_id FROM person_payer
+INNER JOIN ( SELECT person_payer.person_id FROM NGProd.dbo.person_payer
              EXCEPT
-             SELECT person_payer.person_id FROM person_payer
+             SELECT person_payer.person_id FROM NGProd.dbo.person_payer
              WHERE person_payer.payer_id NOT IN (SELECT payor FROM @Medicaid) )
 AS yesMedicaid ON patient_alerts.source_id = yesMedicaid.person_id
 WHERE ( patient_alerts.subject = @AlertMedicaidSubj
@@ -200,14 +200,14 @@ WHERE ( patient_alerts.subject = @AlertMedicaidSubj
 UPDATE patient_alerts
 SET delete_ind = 'N'
 FROM [NGProd].[dbo].patient_alerts
-INNER JOIN person on patient_alerts.source_id = person.person_id
-INNER JOIN ( SELECT patient_.person_id FROM patient_
+INNER JOIN NGProd.dbo.person on patient_alerts.source_id = person.person_id
+INNER JOIN ( SELECT patient_.person_id FROM NGProd.dbo.patient_
 	     INTERSECT
-	     SELECT person_payer.person_id FROM person_payer )
+	     SELECT person_payer.person_id FROM NGProd.dbo.person_payer )
 AS insured ON patient_alerts.source_id = insured.person_id
-INNER JOIN ( SELECT person_payer.person_id FROM person_payer
+INNER JOIN ( SELECT person_payer.person_id FROM NGProd.dbo.person_payer
              EXCEPT
-             SELECT person_payer.person_id FROM person_payer
+             SELECT person_payer.person_id FROM NGProd.dbo.person_payer
              WHERE person_payer.payer_id NOT IN (SELECT payor FROM @Medicare) )
 AS yesMedicare ON patient_alerts.source_id = yesMedicare.person_id
 WHERE ( patient_alerts.subject = @AlertMedicareSubj
@@ -244,13 +244,13 @@ INSERT INTO [NGProd].[dbo].patient_alerts (
         ,'-99'
         ,NULL
     FROM [NGProd].[dbo].person
-    INNER JOIN ( SELECT patient_.person_id FROM patient_
+    INNER JOIN ( SELECT patient_.person_id FROM NGProd.dbo.patient_
                  EXCEPT
-                 SELECT person_payer.person_id FROM person_payer ) 
+                 SELECT person_payer.person_id FROM NGProd.dbo.person_payer ) 
     AS uninsured ON person.person_id = uninsured.person_id
-    INNER JOIN ( SELECT patient_.person_id FROM patient_
+    INNER JOIN ( SELECT patient_.person_id FROM NGProd.dbo.patient_
 	         EXCEPT
-		 SELECT patient_alerts.source_id FROM patient_alerts 
+		 SELECT patient_alerts.source_id FROM NGProd.dbo.patient_alerts 
 		 WHERE patient_alerts.subject = @AlertUninsuredSubj )
     AS noAlert ON person.person_id = noAlert.person_id
 
@@ -282,18 +282,18 @@ INSERT INTO [NGProd].[dbo].patient_alerts (
         ,'-99'
         ,NULL
     FROM [NGProd].[dbo].person
-    INNER JOIN ( SELECT patient_.person_id FROM patient_
+    INNER JOIN ( SELECT patient_.person_id FROM NGProd.dbo.patient_
 	         INTERSECT
-	         SELECT person_payer.person_id FROM person_payer )
-    AS insured ON patient_alerts.source_id = insured.person_id
-    INNER JOIN ( SELECT person_payer.person_id FROM person_payer
+	         SELECT person_payer.person_id FROM NGProd.dbo.person_payer )
+    AS insured ON NGProd.dbo.patient_alerts.source_id = insured.person_id
+    INNER JOIN ( SELECT person_payer.person_id FROM NGProd.dbo.person_payer
                  EXCEPT
-                 SELECT person_payer.person_id FROM person_payer
+                 SELECT person_payer.person_id FROM NGProd.dbo.person_payer
                  WHERE person_payer.payer_id NOT IN (SELECT payor FROM @Medicaid) )
-    AS yesMedicaid ON patient_alerts.source_id = yesMedicaid.person_id
-    INNER JOIN ( SELECT patient_.person_id FROM patient_
+    AS yesMedicaid ON NGProd.dbo.patient_alerts.source_id = yesMedicaid.person_id
+    INNER JOIN ( SELECT patient_.person_id FROM NGProd.dbo.patient_
 	         EXCEPT
-		 SELECT patient_alerts.source_id FROM patient_alerts 
+		 SELECT patient_alerts.source_id FROM NGProd.dbo.patient_alerts 
 		 WHERE patient_alerts.subject = @AlertMedicaidSubj )
     AS noAlert ON person.person_id = noAlert.person_id
 
@@ -325,17 +325,18 @@ INSERT INTO [NGProd].[dbo].patient_alerts (
         ,'-99'
         ,NULL
     FROM [NGProd].[dbo].person
-    INNER JOIN ( SELECT patient_.person_id FROM patient_
+    INNER JOIN ( SELECT patient_.person_id FROM NGProd.dbo.patient_
 	         INTERSECT
-	         SELECT person_payer.person_id FROM person_payer )
-    AS insured ON patient_alerts.source_id = insured.person_id
-    INNER JOIN ( SELECT person_payer.person_id FROM person_payer
+	         SELECT person_payer.person_id FROM NGProd.dbo.person_payer )
+    AS insured ON NGProd.dbo.patient_alerts.source_id = insured.person_id
+    INNER JOIN ( SELECT person_payer.person_id FROM NGProd.dbo.person_payer
                  EXCEPT
-                 SELECT person_payer.person_id FROM person_payer
+                 SELECT person_payer.person_id FROM NGProd.dbo.person_payer
                  WHERE person_payer.payer_id NOT IN (SELECT payor FROM @Medicare) )
-    AS yesMedicare ON patient_alerts.source_id = yesMedicare.person_id
-    INNER JOIN ( SELECT patient_.person_id FROM patient_
+    AS yesMedicare ON NGProd.dbo.patient_alerts.source_id = yesMedicare.person_id
+    INNER JOIN ( SELECT patient_.person_id FROM NGProd.dbo.patient_
 	         EXCEPT
-		 SELECT patient_alerts.source_id FROM patient_alerts 
+		 SELECT patient_alerts.source_id FROM NGProd.dbo.patient_alerts 
 		 WHERE patient_alerts.subject = @AlertMedicareSubj )
     AS noAlert ON person.person_id = noAlert.person_id
+
