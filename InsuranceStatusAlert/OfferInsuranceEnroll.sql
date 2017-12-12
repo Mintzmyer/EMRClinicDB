@@ -95,7 +95,7 @@ FROM [NGProd].[dbo].person_ud
 INNER JOIN ( SELECT patient_.person_id FROM patient_
 	     INTERSECT
 	     SELECT person_payer.person_id FROM person_payer )
-AS results ON person_ud.person_id = results.person_id
+AS insured ON person_ud.person_id = insured.person_id
 WHERE person_ud.ud_demo1_id != @Insured
 
 
@@ -108,7 +108,7 @@ FROM [NGProd].[dbo].person_ud
 INNER JOIN ( SELECT patient_.person_id FROM patient_
              EXCEPT
              SELECT person_payer.person_id FROM person_payer ) 
-AS results ON person_ud.person_id = results.person_id
+AS uninsured ON person_ud.person_id = uninsured.person_id
 WHERE (    person_ud.ud_demo1_id != @NotDoneYet
 	OR person_ud.ud_demo1_id != @Uninterested
 	OR person_ud.ud_demo1_id != @Referred )
@@ -126,20 +126,26 @@ FROM [NGProd].[dbo].patient_alerts
 INNER JOIN ( SELECT patient_.person_id FROM patient_
 	     INTERSECT
 	     SELECT person_payer.person_id FROM person_payer )
-AS results ON patient_alerts.source_id = results.person_id
+AS insured ON patient_alerts.source_id = insured.person_id
 WHERE (patient_alerts.subject = @AlertUninsuredSubj
      AND patient_alerts.delete_ind = 'N')
 
--- Remove Medicaid EPM alert if patient has no Medicaid insurance and (undeleted) alert
+-- Remove Medicaid EPM alert if patient has lost Medicaid insurance and (undeleted) alert
 UPDATE patient_alerts
 SET delete_ind = 'Y'
 FROM [NGProd].[dbo].patient_alerts
-INNER JOIN patient_
-ON patient_.person_id = patient_alerts.source_id
-WHERE ( ( patient_.prim_insurance NOT IN (SELECT payor FROM @Medicaid)
-       AND patient_.sec_insurance NOT IN (SELECT payor FROM @Medicaid) )
-     AND ( patient_alerts.subject = @AlertMedicaidSubj
-       AND patient_alerts.delete_ind = 'N') )
+INNER JOIN person on patient_alerts.source_id = person.person_id
+INNER JOIN ( SELECT patient_.person_id FROM patient_
+	     INTERSECT
+	     SELECT person_payer.person_id FROM person_payer )
+AS insured ON patient_alerts.source_id = insured.person_id
+INNER JOIN ( SELECT person_payer.person_id FROM person_payer
+             EXCEPT
+             SELECT person_payer.person_id FROM person_payer
+             WHERE person_payer.payer_id IN (SELECT payor FROM @Medicaid) )
+AS noMedicaid ON patient_alerts.source_id = noMedicaid.person_id
+WHERE ( patient_alerts.subject = @AlertMedicaidSubj
+       AND patient_alerts.delete_ind = 'N')
 
 -- Remove Medicare EPM alert if patient has no Medicare insurance and (undeleted) alert
 UPDATE patient_alerts
