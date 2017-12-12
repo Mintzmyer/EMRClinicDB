@@ -182,23 +182,37 @@ WHERE (patient_alerts.subject = @AlertUninsuredSubj
 UPDATE patient_alerts
 SET delete_ind = 'N'
 FROM [NGProd].[dbo].patient_alerts
-INNER JOIN patient_
-ON patient_.person_id = patient_alerts.source_id
-WHERE ( ( patient_.prim_insurance IN (SELECT payor FROM @Medicaid)
-       OR patient_.sec_insurance IN (SELECT payor FROM @Medicaid) )
-     AND ( patient_alerts.subject = @AlertMedicaidSubj
-       AND patient_alerts.delete_ind = 'Y') )
+INNER JOIN person on patient_alerts.source_id = person.person_id
+INNER JOIN ( SELECT patient_.person_id FROM patient_
+	     INTERSECT
+	     SELECT person_payer.person_id FROM person_payer )
+AS insured ON patient_alerts.source_id = insured.person_id
+INNER JOIN ( SELECT person_payer.person_id FROM person_payer
+             EXCEPT
+             SELECT person_payer.person_id FROM person_payer
+             WHERE person_payer.payer_id NOT IN (SELECT payor FROM @Medicaid) )
+AS yesMedicaid ON patient_alerts.source_id = yesMedicaid.person_id
+WHERE ( patient_alerts.subject = @AlertMedicaidSubj
+       AND patient_alerts.delete_ind = 'Y')
+
 
 -- Reactivate Medicare EPM alert if patient regains Medicare and has deleted alert
 UPDATE patient_alerts
 SET delete_ind = 'N'
 FROM [NGProd].[dbo].patient_alerts
-INNER JOIN patient_
-ON patient_.person_id = patient_alerts.source_id
-WHERE ( ( patient_.prim_insurance IN (SELECT payor FROM @Medicare)
-       OR patient_.sec_insurance IN (SELECT payor FROM @Medicare) )
-     AND ( patient_alerts.subject = @AlertMedicareSubj
-       AND patient_alerts.delete_ind = 'Y') )
+INNER JOIN person on patient_alerts.source_id = person.person_id
+INNER JOIN ( SELECT patient_.person_id FROM patient_
+	     INTERSECT
+	     SELECT person_payer.person_id FROM person_payer )
+AS insured ON patient_alerts.source_id = insured.person_id
+INNER JOIN ( SELECT person_payer.person_id FROM person_payer
+             EXCEPT
+             SELECT person_payer.person_id FROM person_payer
+             WHERE person_payer.payer_id NOT IN (SELECT payor FROM @Medicare) )
+AS yesMedicare ON patient_alerts.source_id = yesMedicare.person_id
+WHERE ( patient_alerts.subject = @AlertMedicareSubj
+       AND patient_alerts.delete_ind = 'Y')
+
         /**    INSERT NEW ALERTS    **/
 
 -- Insert Uninsured EPM Alert 
