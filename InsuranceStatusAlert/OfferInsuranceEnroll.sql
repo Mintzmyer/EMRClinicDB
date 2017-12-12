@@ -244,22 +244,15 @@ INSERT INTO [NGProd].[dbo].patient_alerts (
         ,'-99'
         ,NULL
     FROM [NGProd].[dbo].person
-        INNER JOIN [NGProd].[dbo].patient_
-	ON person.person_id = patient_.person_id
-	INNER JOIN (
-	    SELECT patient_.person_id
-	    FROM patient_
-	    EXCEPT
-	    SELECT patient_.person_id
-	    FROM patient_ INNER JOIN patient_alerts 
-	    ON patient_.person_id = patient_alerts.source_id
-	    WHERE patient_alerts.subject = @AlertUninsuredSubj)
-	    AS results
-	ON person.person_id = results.person_id
-    WHERE  ( [NGProd].[dbo].patient_.prim_insurance is NULL
-        AND [NGProd].[dbo].patient_.sec_insurance is NULL )
-        ORDER BY person.last_name
-
+    INNER JOIN ( SELECT patient_.person_id FROM patient_
+                 EXCEPT
+                 SELECT person_payer.person_id FROM person_payer ) 
+    AS uninsured ON person.person_id = uninsured.person_id
+    INNER JOIN ( SELECT patient_.person_id FROM patient_
+	         EXCEPT
+		 SELECT patient_alerts.source_id FROM patient_alerts 
+		 WHERE patient_alerts.subject = @AlertUninsuredSubj )
+    AS noAlert ON person.person_id = noAlert.person_id
 
 -- Insert Medicaid EPM Alert only if they don't already have one
 INSERT INTO [NGProd].[dbo].patient_alerts (
