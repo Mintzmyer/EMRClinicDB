@@ -51,10 +51,23 @@ SET @Uninterested = ( SELECT mstr_list_item_id
 			AND mstr_list_item_desc = 'Uninsured - Not Interested' ) )
 
 
+-- Add Medicare/Medicaid payors to the list as needed:
+DECLARE @TrilliumMedicare     uniqueidentifier
+DECLARE @MedicareB            uniqueidentifier
+DECLARE @TrilliumMedicaid     uniqueidentifier
+DECLARE @DMAP                 uniqueidentifier
+
 DECLARE @Medicare TABLE (payor varchar(200))
 DECLARE @Medicaid TABLE (payor varchar(200))
 
--- Add Medicare/Medicaid payors to the list as needed:
+SET @TrilliumMedicare = ( SELECT payer_id
+	                  FROM [NGProd].[dbo].payer_mstr
+			  WHERE payer_name = 'Trillium Medicare' )
+
+SET @TrilliumMedicaid = ( SELECT payer_id
+	                  FROM [NGProd].[dbo].payer_mstr
+			  WHERE payer_name = 'Trillium Medicaid' )
+
 INSERT INTO @Medicare (payor) VALUES ('Trillium Medicare'), ('Medicare B')
 INSERT INTO @Medicaid (payor) VALUES ('Trillium Medicaid'), ('DMAP')
 
@@ -195,21 +208,16 @@ INSERT INTO [NGProd].[dbo].patient_alerts (
     FROM [NGProd].[dbo].person
         INNER JOIN [NGProd].[dbo].patient_
 	ON person.person_id = patient_.person_id
-	    INNER JOIN [NGProd].[dbo].patient_alerts
-	ON person.person_id = patient_alerts.source_id
 	INNER JOIN (
-	    SELECT patient_alerts.source_id
-	    FROM patient_alerts
-	    INNER JOIN patient_
-	    ON patient_alerts.source_id = patient_.person_id
+	    SELECT patient_.person_id
+	    FROM patient_
 	    EXCEPT
-	    SELECT patient_alerts.source_id
-	    FROM patient_alerts
-	    INNER JOIN patient_
-	    ON patient_alerts.source_id = patient_.person_id
+	    SELECT patient_.person_id
+	    FROM patient_ INNER JOIN patient_alerts 
+	    ON patient_.person_id = patient_alerts.source_id
 	    WHERE patient_alerts.subject = @AlertUninsuredSubj)
 	    AS results
-	ON person.person_id = results.source_id
+	ON person.person_id = results.person_id
     WHERE  ( [NGProd].[dbo].patient_.prim_insurance is NULL
         AND [NGProd].[dbo].patient_.sec_insurance is NULL )
         ORDER BY person.last_name
