@@ -91,11 +91,11 @@ INSERT INTO @Medicaid (payor) VALUES (@TrilliumMedicaid), (@DMAP)
 -- Set all insured patients to 'Insured' status
 UPDATE person_ud
 SET ud_demo1_id = @Insured
-
 FROM [NGProd].[dbo].person_ud
 INNER JOIN ( SELECT patient_.person_id FROM patient_
 	     INTERSECT
 	     SELECT person_payer.person_id FROM person_payer )
+AS results ON person_ud.person_id = results.person_id
 WHERE person_ud.ud_demo1_id != @Insured
 
 
@@ -123,11 +123,11 @@ WHERE (    person_ud.ud_demo1_id != @NotDoneYet
 UPDATE patient_alerts
 SET delete_ind = 'Y'
 FROM [NGProd].[dbo].patient_alerts
-INNER JOIN patient_
-ON patient_.person_id = patient_alerts.source_id
-WHERE ( patient_.prim_insurance is not NULL
-     OR patient_.sec_insurance is not NULL )
-     AND (patient_alerts.subject = @AlertUninsuredSubj
+INNER JOIN ( SELECT patient_.person_id FROM patient_
+	     INTERSECT
+	     SELECT person_payer.person_id FROM person_payer )
+AS results ON patient_alerts.source_id = results.person_id
+WHERE (patient_alerts.subject = @AlertUninsuredSubj
      AND patient_alerts.delete_ind = 'N')
 
 -- Remove Medicaid EPM alert if patient has no Medicaid insurance and (undeleted) alert
