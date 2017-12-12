@@ -64,12 +64,20 @@ SET @TrilliumMedicare = ( SELECT payer_id
 	                  FROM [NGProd].[dbo].payer_mstr
 			  WHERE payer_name = 'Trillium Medicare' )
 
+SET @MedicareB = ( SELECT payer_id
+	                  FROM [NGProd].[dbo].payer_mstr
+			  WHERE payer_name = 'Medicare B' 
+
 SET @TrilliumMedicaid = ( SELECT payer_id
 	                  FROM [NGProd].[dbo].payer_mstr
 			  WHERE payer_name = 'Trillium Medicaid' )
 
-INSERT INTO @Medicare (payor) VALUES ('Trillium Medicare'), ('Medicare B')
-INSERT INTO @Medicaid (payor) VALUES ('Trillium Medicaid'), ('DMAP')
+SET @DMAP = ( SELECT payer_id
+	                  FROM [NGProd].[dbo].payer_mstr
+			  WHERE payer_name = 'DMAP' 
+
+INSERT INTO @Medicare (payor) VALUES (@TrilliumMedicare), (@MedicareB)
+INSERT INTO @Medicaid (payor) VALUES (@TrilliumMedicaid), (@DMAP)
 
 
         /****    STATUS UPDATES    ****/
