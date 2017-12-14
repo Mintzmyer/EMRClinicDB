@@ -12,3 +12,5 @@ Maintain alerts:
 
 This script will run as a scheduled job to maintain an updated status on our patients.
 
+Passed testing 12/14/17, introduced to production environment.
+
