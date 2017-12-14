@@ -120,7 +120,10 @@ WHERE (    person_ud.ud_demo1_id != @NotDoneYet
 	OR person_ud.ud_demo1_id != @Referred )
 
 
---Insert Uninsured EPM Alert
+        /**    INSERT NEW ALERTS    **/
+
+-- Insert Uninsured EPM Alert 
+-- Only if they don't already have one
 INSERT INTO [NGProd].[dbo].patient_alerts (
     practice_id
     ,alert_id
@@ -139,8 +142,8 @@ INSERT INTO [NGProd].[dbo].patient_alerts (
         ,NEWID()
         ,[NGProd].[dbo].person.person_id
         ,'C'
-        ,'SHOP - Enroll in Insurance'
-        ,'This patient does not have insurance.'
+        ,@AlertUninsuredSubj
+        ,@AlertUninsuredDesc
         ,'N'
         ,CURRENT_TIMESTAMP
         ,'-99'
@@ -148,11 +151,100 @@ INSERT INTO [NGProd].[dbo].patient_alerts (
         ,'-99'
         ,NULL
     FROM [NGProd].[dbo].person
-        INNER JOIN [NGProd].[dbo].patient_
-	ON person.person_id = patient_.person_id
-        INNER JOIN [NGProd].[dbo].person_ud
-	ON person_ud.person_id = person.person_id
-    WHERE ( ( [NGProd].[dbo].patient_.prim_insurance is NULL
-        AND [NGProd].[dbo].patient_.sec_insurance is NULL )
-        AND ( [NGProd].[dbo].person_ud.ud_demo1_id != @Uninterested ) )
+    INNER JOIN ( SELECT patient_.person_id FROM NGProd.dbo.patient_
+                 EXCEPT
+                 SELECT person_payer.person_id FROM NGProd.dbo.person_payer ) 
+    AS uninsured ON person.person_id = uninsured.person_id
+    INNER JOIN ( SELECT patient_.person_id FROM NGProd.dbo.patient_
+	         EXCEPT
+		 SELECT patient_alerts.source_id FROM NGProd.dbo.patient_alerts 
+		 WHERE patient_alerts.subject = @AlertUninsuredSubj )
+    AS noAlert ON person.person_id = noAlert.person_id
+
+-- Insert Medicaid EPM Alert only if they don't already have one
+INSERT INTO [NGProd].[dbo].patient_alerts (
+    practice_id
+    ,alert_id
+    ,source_id
+    ,source_type
+    ,subject
+    ,description
+    ,delete_ind
+    ,create_timestamp
+    ,created_by
+    ,modify_timestamp
+    ,modified_by
+    ,link_id
+    )
+    SELECT [NGProd].[dbo].person.practice_id
+        ,NEWID()
+        ,[NGProd].[dbo].person.person_id
+        ,'C'
+        ,@AlertMedicaidSubj
+        ,@AlertMedicaidDesc
+        ,'N'
+        ,CURRENT_TIMESTAMP
+        ,'-99'
+        ,CURRENT_TIMESTAMP
+        ,'-99'
+        ,NULL
+    FROM [NGProd].[dbo].person
+    INNER JOIN ( SELECT patient_.person_id FROM NGProd.dbo.patient_
+	         INTERSECT
+	         SELECT person_payer.person_id FROM NGProd.dbo.person_payer )
+    AS insured ON person.person_id = insured.person_id
+    INNER JOIN ( SELECT person_payer.person_id FROM NGProd.dbo.person_payer
+                 EXCEPT
+                 SELECT person_payer.person_id FROM NGProd.dbo.person_payer
+                 WHERE person_payer.payer_id NOT IN (SELECT payor FROM @Medicaid) )
+    AS yesMedicaid ON person.person_id = yesMedicaid.person_id
+    INNER JOIN ( SELECT patient_.person_id FROM NGProd.dbo.patient_
+	         EXCEPT
+		 SELECT patient_alerts.source_id FROM NGProd.dbo.patient_alerts 
+		 WHERE patient_alerts.subject = @AlertMedicaidSubj )
+    AS noAlert ON person.person_id = noAlert.person_id
+
+-- Insert Medicare EPM Alert only if they don't already have one
+INSERT INTO [NGProd].[dbo].patient_alerts (
+    practice_id
+    ,alert_id
+    ,source_id
+    ,source_type
+    ,subject
+    ,description
+    ,delete_ind
+    ,create_timestamp
+    ,created_by
+    ,modify_timestamp
+    ,modified_by
+    ,link_id
+    )
+    SELECT [NGProd].[dbo].person.practice_id
+        ,NEWID()
+        ,[NGProd].[dbo].person.person_id
+        ,'C'
+        ,@AlertMedicareSubj
+        ,@AlertMedicareDesc
+        ,'N'
+        ,CURRENT_TIMESTAMP
+        ,'-99'
+        ,CURRENT_TIMESTAMP
+        ,'-99'
+        ,NULL
+    FROM [NGProd].[dbo].person
+    INNER JOIN ( SELECT patient_.person_id FROM NGProd.dbo.patient_
+	         INTERSECT
+	         SELECT person_payer.person_id FROM NGProd.dbo.person_payer )
+    AS insured ON person.person_id = insured.person_id
+    INNER JOIN ( SELECT person_payer.person_id FROM NGProd.dbo.person_payer
+                 EXCEPT
+                 SELECT person_payer.person_id FROM NGProd.dbo.person_payer
+                 WHERE person_payer.payer_id NOT IN (SELECT payor FROM @Medicare) )
+    AS yesMedicare ON person.person_id = yesMedicare.person_id
+    INNER JOIN ( SELECT patient_.person_id FROM NGProd.dbo.patient_
+	         EXCEPT
+		 SELECT patient_alerts.source_id FROM NGProd.dbo.patient_alerts 
+		 WHERE patient_alerts.subject = @AlertMedicareSubj )
+    AS noAlert ON person.person_id = noAlert.person_id
+
 
