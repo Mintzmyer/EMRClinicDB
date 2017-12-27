@@ -6,7 +6,7 @@
 
 -- Appointments are in table: dbo.appointments
 -- EPM Tasks are in table: dbo.task_mstr
--- EHR Tasks are in table: dbo.
+-- EHR Tasks are in table: dbo.user_todo_list
 
 
 
