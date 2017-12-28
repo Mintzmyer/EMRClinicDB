@@ -20,9 +20,29 @@
 * insert new clinical task with patient information
 *
 ***/
+
+-- Declare Variables
+DECLARE @NewTaskId uniqueidentifier
+SET @NewTaskId = '3F5BBE0E-E942-479A-B34F-F1D0983AC597'
+
+DECLARE @WorkgroupName varchar(45)
+SET @WorkgroupName = '-B/O (Back Office Tasks)'
+
+DECLARE @WorkgroupId integer
+SET @WorkgroupId = (
+SELECT workgroup_id FROM [NGProd].[dbo].task_workgroup_mstr WHERE workgroup_name = @WorkgroupName)
+
+DECLARE @WorkgroupDesc varchar(45)
+SET @WorkgroupDesc = (
+SELECT workgroup_desc FROM [NGProd].[dbo].task_workgroup_mstr WHERE workgroup_name = @WorkgroupName)
+
+
+
 -- Identify update to Appointment: cancel_ind to 'Y' or appt_kept_ind to 'N'
+
 -- Capture patient's person_id
--- Insert into user_todo_list
+
+-- Insert task into user_todo_list
 INSERT INTO [NGProd].[dbo].[user_todo_list] (
       [enterprise_id]
       ,[practice_id]
@@ -46,22 +66,21 @@ INSERT INTO [NGProd].[dbo].[user_todo_list] (
       ,[created_by]
       ,[create_timestamp]
       ,[modified_by]
-      ,[modify_timestamp]
-      ,[row_timestamp]
       ,[rejected_ind] 
       )
-      SELECT [NGProd].[dbo].person.enterprise_id
-            ,[NGProd].[dbo].person.practice_id
+      VALUES (
+             00001
+            ,0001
             ,'-99'
-            ,NEWID()
+            ,@NewTaskId
             ,'2'
 	    ,'0'
+	    ,CURRENT_TIMESTAMP
+	    ,'The Ultimate Test'
+	    ,'This task will test everything you thought you knew'
 	    ,NULL
-	    ,'MEANINGFUL SUBJECT'
-	    ,'This description should be meaningful too'
 	    ,NULL
 	    ,NULL
-	    ,'0'
 	    ,NULL -- CONNECT PATIENT ACCOUNT
 	    ,NULL
 	    ,NULL
@@ -72,9 +91,31 @@ INSERT INTO [NGProd].[dbo].[user_todo_list] (
 	    ,'-99'
 	    ,CURRENT_TIMESTAMP
 	    ,''
-	    ,''
-	    ,'0'
-	    
+	    ,'N'
+	    )
+
+-- Assign task to group in external reference table group_assign
+INSERT INTO [NGProd].[dbo].group_assign (
+      [task_id]
+     ,[group_id]
+     ,[response]
+     ,[created_by]
+     ,[create_timestamp]
+     ,[modified_by]
+     ,[modify_timestamp]
+     ,[row_timestamp]
+     )
+     VALUES (
+       	    @NewTaskId
+           ,@WorkgroupId
+	   ,NULL
+	   ,'-99'
+	   ,CURRENT_TIMESTAMP
+	   ,''
+	   ,''
+	   ,NULL
+	   )
+
 
 
 
